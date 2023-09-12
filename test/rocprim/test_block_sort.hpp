@@ -220,12 +220,22 @@ void TestSortKey(std::vector<size_t> sizes)
             key_type asd;
             std::cout << "Datatype:" <<  typeid(asd).name() << " Block Size:" << block_size << " ItemsPerThread:" << items_per_thread << " Data size:" << size << " Seed Value:" << seed_value << std::endl;
             HIP_CHECK(test_common_utils::hipMallocHelper(&device_key_output,
-                                                         output.size() * sizeof(key_type)));
+                                                         output.size() * sizeof(key_type) + 4096)); // add an extra page
 
             HIP_CHECK(hipMemcpy(device_key_output,
                                 output.data(),
                                 output.size() * sizeof(key_type),
                                 hipMemcpyHostToDevice));
+
+            // Fill extra page with NaNs
+            const int num_extra_items = 4096 / sizeof(float);
+            std::vector<float> extra_items(num_extra_items, std::numeric_limits<float>::quiet_NaN());
+            HIP_CHECK(hipMemcpy(device_key_output + output.size(),
+                                extra_items.data(),
+                                extra_items.size() * sizeof(float),
+                                hipMemcpyHostToDevice
+                                )
+            );
 
             const unsigned int grid_size = rocprim::detail::ceiling_div(size, items_per_block);
             // Running kernel, ignored if invalid size
