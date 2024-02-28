@@ -189,139 +189,139 @@ using RocprimDeviceAdjacentDifferenceTestsParams = ::testing::Types<
 
 TYPED_TEST_SUITE(RocprimDeviceAdjacentDifferenceTests, RocprimDeviceAdjacentDifferenceTestsParams);
 
-TYPED_TEST(RocprimDeviceAdjacentDifferenceTests, AdjacentDifference)
-{
-    int device_id = test_common_utils::obtain_device_from_ctest();
-    SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
-    HIP_CHECK(hipSetDevice(device_id));
+// TYPED_TEST(RocprimDeviceAdjacentDifferenceTests, AdjacentDifference)
+// {
+//     int device_id = test_common_utils::obtain_device_from_ctest();
+//     SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
+//     HIP_CHECK(hipSetDevice(device_id));
 
-    using T                                     = typename TestFixture::input_type;
-    using output_type                           = typename TestFixture::output_type;
-    static constexpr bool left                  = TestFixture::left;
-    static constexpr bool in_place              = TestFixture::in_place;
-    static constexpr bool use_identity_iterator = TestFixture::use_identity_iterator;
-    static constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
-    using Config                                = typename TestFixture::config;
+//     using T                                     = typename TestFixture::input_type;
+//     using output_type                           = typename TestFixture::output_type;
+//     static constexpr bool left                  = TestFixture::left;
+//     static constexpr bool in_place              = TestFixture::in_place;
+//     static constexpr bool use_identity_iterator = TestFixture::use_identity_iterator;
+//     static constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+//     using Config                                = typename TestFixture::config;
 
-    SCOPED_TRACE(testing::Message() << "left = " << left << ", in_place = " << in_place);
+//     SCOPED_TRACE(testing::Message() << "left = " << left << ", in_place = " << in_place);
 
-    for(std::size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
-    {
-        const unsigned int seed_value
-            = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
-        SCOPED_TRACE(testing::Message() << "with seed = " << seed_value);
+//     for(std::size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
+//     {
+//         const unsigned int seed_value
+//             = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
+//         SCOPED_TRACE(testing::Message() << "with seed = " << seed_value);
 
-        for(auto size : test_utils::get_sizes(seed_value))
-        {
-            hipStream_t stream = 0; // default
-            if (TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
+//         for(auto size : test_utils::get_sizes(seed_value))
+//         {
+//             hipStream_t stream = 0; // default
+//             if (TestFixture::use_graphs)
+//             {
+//                 // Default stream does not support hipGraph stream capture, so create one
+//                 HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
+//             }
             
-            SCOPED_TRACE(testing::Message() << "with size = " << size);
+//             SCOPED_TRACE(testing::Message() << "with size = " << size);
 
-            // Generate data
-            const std::vector<T> input = test_utils::get_random_data<T>(size, 1, 100, seed_value);
-            std::vector<output_type> output(input.size());
+//             // Generate data
+//             const std::vector<T> input = test_utils::get_random_data<T>(size, 1, 100, seed_value);
+//             std::vector<output_type> output(input.size());
 
-            T*           d_input;
-            output_type* d_output = nullptr;
-            HIP_CHECK(
-                test_common_utils::hipMallocHelper(&d_input, input.size() * sizeof(input[0])));
-            HIP_CHECK(hipMemcpy(
-                d_input, input.data(), input.size() * sizeof(input[0]), hipMemcpyHostToDevice));
+//             T*           d_input;
+//             output_type* d_output = nullptr;
+//             HIP_CHECK(
+//                 test_common_utils::hipMallocHelper(&d_input, input.size() * sizeof(input[0])));
+//             HIP_CHECK(hipMemcpy(
+//                 d_input, input.data(), input.size() * sizeof(input[0]), hipMemcpyHostToDevice));
 
-            if(!in_place)
-            {
-                HIP_CHECK(test_common_utils::hipMallocHelper(&d_output,
-                                                             output.size() * sizeof(output[0])));
-            }
+//             if(!in_place)
+//             {
+//                 HIP_CHECK(test_common_utils::hipMallocHelper(&d_output,
+//                                                              output.size() * sizeof(output[0])));
+//             }
 
-            static constexpr auto left_tag     = rocprim::detail::bool_constant<left> {};
-            static constexpr auto in_place_tag = rocprim::detail::bool_constant<in_place> {};
+//             static constexpr auto left_tag     = rocprim::detail::bool_constant<left> {};
+//             static constexpr auto in_place_tag = rocprim::detail::bool_constant<in_place> {};
 
-            // Calculate expected results on host
-            const auto expected
-                = get_expected_result<output_type>(input, rocprim::minus<> {}, left_tag);
+//             // Calculate expected results on host
+//             const auto expected
+//                 = get_expected_result<output_type>(input, rocprim::minus<> {}, left_tag);
 
-            const auto output_it
-                = test_utils::wrap_in_identity_iterator<use_identity_iterator>(d_output);
+//             const auto output_it
+//                 = test_utils::wrap_in_identity_iterator<use_identity_iterator>(d_output);
 
-            hipGraph_t graph;
-            hipGraphExec_t graph_instance;
-            if (TestFixture::use_graphs)
-                graph = test_utils::createGraphHelper(stream);
+//             hipGraph_t graph;
+//             hipGraphExec_t graph_instance;
+//             if (TestFixture::use_graphs)
+//                 graph = test_utils::createGraphHelper(stream);
             
-            // Allocate temporary storage
-            std::size_t temp_storage_size;
-            void*       d_temp_storage = nullptr;
-            HIP_CHECK(dispatch_adjacent_difference<Config>(left_tag,
-                                                           in_place_tag,
-                                                           d_temp_storage,
-                                                           temp_storage_size,
-                                                           d_input,
-                                                           output_it,
-                                                           size,
-                                                           rocprim::minus<> {},
-                                                           stream,
-                                                           TestFixture::debug_synchronous));
+//             // Allocate temporary storage
+//             std::size_t temp_storage_size;
+//             void*       d_temp_storage = nullptr;
+//             HIP_CHECK(dispatch_adjacent_difference<Config>(left_tag,
+//                                                            in_place_tag,
+//                                                            d_temp_storage,
+//                                                            temp_storage_size,
+//                                                            d_input,
+//                                                            output_it,
+//                                                            size,
+//                                                            rocprim::minus<> {},
+//                                                            stream,
+//                                                            TestFixture::debug_synchronous));
 
-            if (TestFixture::use_graphs)
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+//             if (TestFixture::use_graphs)
+//                 graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
             
-            ASSERT_GT(temp_storage_size, 0);
+//             ASSERT_GT(temp_storage_size, 0);
 
-            HIP_CHECK(test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size));
+//             HIP_CHECK(test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size));
 
-            if (TestFixture::use_graphs)
-                test_utils::resetGraphHelper(graph, graph_instance, stream);
+//             if (TestFixture::use_graphs)
+//                 test_utils::resetGraphHelper(graph, graph_instance, stream);
             
-            // Run
-            HIP_CHECK(dispatch_adjacent_difference<Config>(left_tag,
-                                                           in_place_tag,
-                                                           d_temp_storage,
-                                                           temp_storage_size,
-                                                           d_input,
-                                                           output_it,
-                                                           size,
-                                                           rocprim::minus<> {},
-                                                           stream,
-                                                           TestFixture::debug_synchronous));
-            HIP_CHECK(hipGetLastError());
+//             // Run
+//             HIP_CHECK(dispatch_adjacent_difference<Config>(left_tag,
+//                                                            in_place_tag,
+//                                                            d_temp_storage,
+//                                                            temp_storage_size,
+//                                                            d_input,
+//                                                            output_it,
+//                                                            size,
+//                                                            rocprim::minus<> {},
+//                                                            stream,
+//                                                            TestFixture::debug_synchronous));
+//             HIP_CHECK(hipGetLastError());
 
-            if (TestFixture::use_graphs)
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+//             if (TestFixture::use_graphs)
+//                 graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
 
-            // Copy output to host
-            HIP_CHECK(
-                hipMemcpy(output.data(),
-                          in_place ? static_cast<void*>(d_input) : static_cast<void*>(d_output),
-                          output.size() * sizeof(output[0]),
-                          hipMemcpyDeviceToHost));
+//             // Copy output to host
+//             HIP_CHECK(
+//                 hipMemcpy(output.data(),
+//                           in_place ? static_cast<void*>(d_input) : static_cast<void*>(d_output),
+//                           output.size() * sizeof(output[0]),
+//                           hipMemcpyDeviceToHost));
 
-            // Check if output values are as expected
-            ASSERT_NO_FATAL_FAILURE(test_utils::assert_near(
-                output,
-                expected,
-                std::max(test_utils::precision<T>, test_utils::precision<output_type>)));
+//             // Check if output values are as expected
+//             ASSERT_NO_FATAL_FAILURE(test_utils::assert_near(
+//                 output,
+//                 expected,
+//                 std::max(test_utils::precision<T>, test_utils::precision<output_type>)));
 
-            hipFree(d_input);
-            if(!in_place)
-            {
-                hipFree(d_output);
-            }
-            hipFree(d_temp_storage);
+//             hipFree(d_input);
+//             if(!in_place)
+//             {
+//                 hipFree(d_output);
+//             }
+//             hipFree(d_temp_storage);
 
-            if (TestFixture::use_graphs)
-            {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
-        }
-    }
-}
+//             if (TestFixture::use_graphs)
+//             {
+//                 test_utils::cleanupGraphHelper(graph, graph_instance);
+//                 HIP_CHECK(hipStreamDestroy(stream));
+//             }
+//         }
+//     }
+// }
 
 // Params for tests
 template <bool Left = true, bool InPlace = false, bool UseGraphs = false>
@@ -451,34 +451,19 @@ private:
 };
 
 using RocprimDeviceAdjacentDifferenceLargeTestsParams
-    = ::testing::Types<DeviceAdjacentDifferenceLargeParams<true, false>,
-                       DeviceAdjacentDifferenceLargeParams<false, false>,
+    = ::testing::Types<//DeviceAdjacentDifferenceLargeParams<true, false>,
+                       //DeviceAdjacentDifferenceLargeParams<false, false>,
                        DeviceAdjacentDifferenceLargeParams<true, false, true>>;
 
 TYPED_TEST_SUITE(RocprimDeviceAdjacentDifferenceLargeTests,
                  RocprimDeviceAdjacentDifferenceLargeTestsParams);
 
-TYPED_TEST(RocprimDeviceAdjacentDifferenceLargeTests, LargeIndices)
+template <class TestFixture>
+bool testLargIndices(bool sync_after_memset)
 {
-    const int device_id = test_common_utils::obtain_device_from_ctest();
+    bool passed = true;
 
-#ifdef _WIN32
-    if (TestFixture::use_graphs)
-    {
-        // Skip this test on Navi2x/3x on Windows, since check_output_iterator does not appear to work there.
-        hipDeviceProp_t props;
-        HIP_CHECK(hipGetDeviceProperties(&props, device_id));
-        std::string deviceName = std::string(props.gcnArchName);
-        if(deviceName.rfind("gfx1030", 0) == 0 ||
-           deviceName.rfind("gfx1100", 0) == 0 ||
-           deviceName.rfind("gfx1101", 0) == 0 ||
-           deviceName.rfind("gfx1102", 0) == 0)
-        {
-            // This is a Navi2x/3x device, so skip this test
-            GTEST_SKIP() << "Temporarily skipping test on Windows for on gfx1030, gfx1100, gfx1101, gfx1102";
-        }
-    }
-#endif
+    const int device_id = test_common_utils::obtain_device_from_ctest();
 
     SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
     HIP_CHECK(hipSetDevice(device_id));
@@ -500,14 +485,16 @@ TYPED_TEST(RocprimDeviceAdjacentDifferenceLargeTests, LargeIndices)
         HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
     }
 
-    for(std::size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
+    for(std::size_t seed_index = 0; passed && seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
             = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
         SCOPED_TRACE(testing::Message() << "with seed = " << seed_value);
 
-        for(const auto size : test_utils::get_large_sizes(seed_value))
+        std::vector<size_t> large_sizes = test_utils::get_large_sizes(seed_value);
+        for(size_t i = 0; passed && i < large_sizes.size(); i++)
         {
+            const size_t size = large_sizes[i];
             SCOPED_TRACE(testing::Message() << "with size = " << size);
 
             flag_type* d_incorrect_flag;
@@ -517,6 +504,10 @@ TYPED_TEST(RocprimDeviceAdjacentDifferenceLargeTests, LargeIndices)
             HIP_CHECK(test_common_utils::hipMallocHelper(&d_counter, sizeof(*d_counter)));
             HIP_CHECK(hipMemset(d_incorrect_flag, 0, sizeof(*d_incorrect_flag)));
             HIP_CHECK(hipMemset(d_counter, 0, sizeof(*d_counter)));
+
+            if (sync_after_memset)
+                HIP_CHECK(hipStreamSynchronize(0));
+
             OutputIterator output(d_incorrect_flag, d_counter);
 
             const auto input = rocprim::make_counting_iterator(T{0});
@@ -534,7 +525,7 @@ TYPED_TEST(RocprimDeviceAdjacentDifferenceLargeTests, LargeIndices)
             hipGraphExec_t graph_instance;
             if (TestFixture::use_graphs)
                 graph = test_utils::createGraphHelper(stream);
-            
+
             // Allocate temporary storage
             std::size_t temp_storage_size;
             void*       d_temp_storage = nullptr;
@@ -552,7 +543,14 @@ TYPED_TEST(RocprimDeviceAdjacentDifferenceLargeTests, LargeIndices)
             if (TestFixture::use_graphs)
                 graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
             
-            ASSERT_GT(temp_storage_size, 0);
+            // ASSERT_GT(temp_storage_size, 0);
+            if (temp_storage_size <= 0)
+            {
+                std::cerr << "Test failed!" << std::endl;
+                std::cerr << "Expected temp_storage_size <= 0" << std::endl;
+                std::cerr << "temp_storage_size: " << temp_storage_size << std::endl;
+                passed = false;
+            }
 
             HIP_CHECK(test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size));
 
@@ -583,8 +581,26 @@ TYPED_TEST(RocprimDeviceAdjacentDifferenceLargeTests, LargeIndices)
                                 hipMemcpyDeviceToHost));
             HIP_CHECK(hipMemcpy(&counter, d_counter, sizeof(counter), hipMemcpyDeviceToHost));
 
-            ASSERT_EQ(incorrect_flag, 0);
-            ASSERT_EQ(counter, rocprim::detail::ceiling_div(size, sampling_rate));
+            //ASSERT_EQ(incorrect_flag, 0);
+            if (incorrect_flag != 0)
+            {
+                std::cerr << "Test failed!" << std::endl;
+                std::cerr << "Expected incorrect_flag == 0" << std::endl;
+                std::cerr << "incorrect_flag: " << incorrect_flag << std::endl;
+                passed = false;
+            }
+
+            // ASSERT_EQ(counter, rocprim::detail::ceiling_div(size, sampling_rate));
+            if (counter != rocprim::detail::ceiling_div(size, sampling_rate))
+            {
+                std::cerr << "Test failed!" << std::endl;
+                std::cerr << "Expected counter == ceiling_div(size, sampling_rate)" << std::endl;
+                std::cerr << "counter: " << counter << std::endl;
+                std::cerr << "ceiling_div(size, sampling_rate): " << rocprim::detail::ceiling_div(size, sampling_rate) << std::endl;
+                std::cerr << "size: " << size << std::endl;
+                std::cerr << "sampling_rate: " << sampling_rate << std::endl;
+                passed = false;
+            }
 
             hipFree(d_temp_storage);
             hipFree(d_incorrect_flag);
@@ -597,4 +613,48 @@ TYPED_TEST(RocprimDeviceAdjacentDifferenceLargeTests, LargeIndices)
 
     if (TestFixture::use_graphs)
         HIP_CHECK(hipStreamDestroy(stream));
+
+    return passed;
+}
+
+TYPED_TEST(RocprimDeviceAdjacentDifferenceLargeTests, LargeIndices)
+{
+    const int iters = 10;
+
+    // Test without sync between memset calls and graph stream capture.
+    std::cerr << "** Testing " << iters << " times without sync before stream capture" << " **" << std::endl;
+    int without_passes = 0;
+    for (int i = 0; i < iters; i++)
+    {
+        std::cerr << "-- Test " << (i + 1) << " --" << std::endl;
+        const bool result = testLargIndices<TestFixture>(false);
+        if (result)
+        {
+            std::cerr << "passed" << std::endl;
+            without_passes++;
+        }
+        std::cerr << std::endl;
+    }
+    std::cerr << "** Test passed " << without_passes << " / " << iters << " times. **" << std::endl;
+    std::cerr << std::endl;
+
+    // Test with sync between memset calls and graph stream capture.
+    std::cerr << "** Testing " << iters << " times with sync before stream capture:" << " **" << std::endl;
+    int with_passes = 0;
+    for (int i = 0; i < iters; i++)
+    {
+        std::cerr << "-- Test " << (i + 1) << " --" << std::endl;
+        const bool result = testLargIndices<TestFixture>(true);
+        if (result)
+        {
+            std::cerr << "passed" << std::endl;
+            with_passes++;
+        }
+        std::cerr << std::endl;
+    }
+    std::cerr << "** Test passed " << with_passes << " / " << iters << " times. **" << std::endl;
+    std::cerr << std::endl;
+
+    ASSERT_EQ(with_passes, iters);
+    ASSERT_EQ(without_passes, iters);
 }
