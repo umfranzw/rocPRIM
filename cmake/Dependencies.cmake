@@ -189,8 +189,7 @@ if(NOT ROCM_FOUND)
   set(rocm_cmake_tag "master" CACHE STRING "rocm-cmake tag to download")
   FetchContent_Declare(
     rocm-cmake
-    GIT_REPOSITORY https://github.com/ROCm/rocm-cmake.git
-    GIT_TAG        rocm-6.1.2
+    URL  https://github.com/RadeonOpenCompute/rocm-cmake/archive/${rocm_cmake_tag}.tar.gz
     ${SOURCE_SUBDIR_ARG}
   )
   FetchContent_MakeAvailable(rocm-cmake)
