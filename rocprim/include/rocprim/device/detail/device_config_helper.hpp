@@ -1162,6 +1162,33 @@ struct default_adjacent_find_config_base
 
 } // namespace detail
 
+namespace detail
+{
+
+struct search_config_params
+{
+    kernel_config_params kernel_config;
+};
+
+} // namespace detail
+
+/// \brief Configuration of device-level find_end
+///
+/// \tparam BlockSize number of threads in a block.
+/// \tparam ItemsPerThread number of items processed by each thread.
+template<unsigned int BlockSize, unsigned int ItemsPerThread, unsigned int MaxSharedKeyBytes>
+struct search_config : public detail::search_config_params
+{
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+    constexpr find_end_config()
+        : detail::find_end_config_params{
+            {BlockSize, ItemsPerThread, ROCPRIM_GRID_SIZE_LIMIT}
+    }
+    {}
+#endif
+};
+
+
 END_ROCPRIM_NAMESPACE
 
 /// @}
