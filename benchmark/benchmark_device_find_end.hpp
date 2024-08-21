@@ -71,30 +71,15 @@ struct device_find_end_benchmark : public config_autotune_interface
         size_t key_size = std::min(size, key_size_);
 
         // Generate data
-        std::vector<key_type> keys_input;
-        std::vector<key_type> input;
-        if(std::is_floating_point<key_type>::value)
-        {
-            keys_input = get_random_data<key_type>(key_size,
-                                                   static_cast<key_type>(-1000),
-                                                   static_cast<key_type>(1000),
-                                                   seed.get_0());
-            input      = get_random_data<key_type>(size,
-                                              static_cast<key_type>(-1000),
-                                              static_cast<key_type>(1000),
-                                              seed.get_0());
-        }
-        else
-        {
-            keys_input = get_random_data<key_type>(key_size,
-                                                   std::numeric_limits<key_type>::min(),
-                                                   std::numeric_limits<key_type>::max(),
-                                                   seed.get_0());
-            input      = get_random_data<key_type>(size,
-                                              std::numeric_limits<key_type>::min(),
-                                              std::numeric_limits<key_type>::max(),
-                                              seed.get_0());
-        }
+        std::vector<key_type> keys_input
+            = get_random_data<key_type>(key_size,
+                                        generate_limits<key_type>::min(),
+                                        generate_limits<key_type>::max(),
+                                        seed.get_0());
+        std::vector<key_type> input = get_random_data<key_type>(size,
+                                                                generate_limits<key_type>::min(),
+                                                                generate_limits<key_type>::max(),
+                                                                seed.get_0());
 
         key_type*    d_keys_input;
         key_type*    d_input;
