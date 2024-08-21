@@ -51,7 +51,7 @@ struct wrapped_find_end_config<default_config, Type>
     template<target_arch Arch>
     struct architecture_config
     {
-        static constexpr find_end_config_params params = {kernel_config<256, 1>()};
+        static constexpr find_end_config_params params = {kernel_config<256, 4>()};
     };
 };
 

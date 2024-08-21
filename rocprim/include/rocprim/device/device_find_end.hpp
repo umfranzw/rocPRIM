@@ -25,6 +25,7 @@
 
 #include "../config.hpp"
 
+#include "../block/block_reduce.hpp"
 #include "../intrinsics.hpp"
 #include "config_types.hpp"
 #include "device_find_end_config.hpp"
@@ -87,32 +88,42 @@ void find_end_kernel(InputIterator1 input,
 {
     constexpr find_end_config_params params = device_params<Config>();
 
-    constexpr unsigned int block_size = params.kernel_config.block_size;
+    constexpr unsigned int block_size       = params.kernel_config.block_size;
+    constexpr unsigned int items_per_thread = params.kernel_config.items_per_thread;
+    constexpr unsigned int items_per_block  = block_size * items_per_thread;
 
     const unsigned int flat_id       = rocprim::detail::block_thread_id<0>();
     const unsigned int flat_block_id = rocprim::detail::block_id<0>();
 
-    const OutputType offset       = flat_id + flat_block_id * block_size;
-    bool             find_pattern = true;
+    const OutputType offset       = flat_id * items_per_thread + flat_block_id * items_per_block;
+    bool             find_pattern = false;
 
-    if(offset >= size)
+    if(offset >= size || offset + keys_size > size)
     {
         return;
     }
 
-    for(OutputType i = 0; i < keys_size; i++)
+    OutputType highest_index = 0;
+    for(OutputType id = offset; id < offset + items_per_thread; id++)
     {
-        OutputType current_id = offset + i;
-        if(current_id >= size)
+        OutputType i          = 0;
+        OutputType current_id = id;
+        for(; i < keys_size - 1; i++, current_id++)
         {
-            find_pattern = false;
-            break;
-        }
+            if(current_id >= size)
+            {
+                break;
+            }
 
-        if(!compare_function(keys[i], input[current_id]))
+            if(!compare_function(keys[i], input[current_id]))
+            {
+                break;
+            }
+        }
+        if(current_id < size && i == (keys_size - 1) && compare_function(keys[i], input[current_id]))
         {
-            find_pattern = false;
-            break;
+            highest_index = id;
+            find_pattern  = true;
         }
     }
 
@@ -131,9 +142,9 @@ void find_end_kernel(InputIterator1 input,
     {
         if(output[0] == size)
         {
-            atomic_cas(output, size, offset);
+            atomic_cas(output, size, highest_index);
         }
-        atomic_max(output, offset);
+        atomic_max(output, highest_index);
     }
 }
 
@@ -175,7 +186,9 @@ hipError_t find_end_impl(void*          temporary_storage,
 
     const find_end_config_params params = dispatch_target_arch<config>(target_arch);
 
-    const unsigned int block_size = params.kernel_config.block_size;
+    const unsigned int block_size       = params.kernel_config.block_size;
+    const unsigned int items_per_thread = params.kernel_config.items_per_thread;
+    const unsigned int items_per_block  = block_size * items_per_thread;
 
     // Start point for time measurements
     std::chrono::steady_clock::time_point start;
@@ -207,7 +220,7 @@ hipError_t find_end_impl(void*          temporary_storage,
 
     if(size > 0 && keys_size > 0)
     {
-        const unsigned int num_blocks = ceiling_div(size, block_size);
+        const unsigned int num_blocks = ceiling_div(size, items_per_block);
         start_timer();
         find_end_kernel<config><<<num_blocks, block_size, 0, stream>>>(input,
                                                                        keys,

@@ -39,18 +39,24 @@
 const size_t DEFAULT_N = 1024 * 1024 * 32;
 #endif
 
-#define CREATE_BENCHMARK_FIND_END(TYPE, KEY_SIZE)                     \
-    {                                                                 \
-        const device_find_end_benchmark<TYPE> instance(KEY_SIZE);     \
-        REGISTER_BENCHMARK(benchmarks, size, seed, stream, instance); \
+#define CREATE_BENCHMARK_FIND_END(TYPE, KEY_SIZE, REPEATING)                 \
+    {                                                                        \
+        const device_find_end_benchmark<TYPE> instance(KEY_SIZE, REPEATING); \
+        REGISTER_BENCHMARK(benchmarks, size, seed, stream, instance);        \
     }
 
-#define CREATE_BENCHMARK(TYPE)                 \
-    {                                          \
-        CREATE_BENCHMARK_FIND_END(TYPE, 10)    \
-        CREATE_BENCHMARK_FIND_END(TYPE, 100)   \
-        CREATE_BENCHMARK_FIND_END(TYPE, 1000)  \
-        CREATE_BENCHMARK_FIND_END(TYPE, 10000) \
+#define CREATE_BENCHMARK_PATTERN(TYPE, REPEATING)         \
+    {                                                     \
+        CREATE_BENCHMARK_FIND_END(TYPE, 10, REPEATING)    \
+        CREATE_BENCHMARK_FIND_END(TYPE, 100, REPEATING)   \
+        CREATE_BENCHMARK_FIND_END(TYPE, 1000, REPEATING)  \
+        CREATE_BENCHMARK_FIND_END(TYPE, 10000, REPEATING) \
+    }
+
+#define CREATE_BENCHMARK(TYPE)                \
+    {                                         \
+        CREATE_BENCHMARK_PATTERN(TYPE, true)  \
+        CREATE_BENCHMARK_PATTERN(TYPE, false) \
     }
 
 int main(int argc, char* argv[])

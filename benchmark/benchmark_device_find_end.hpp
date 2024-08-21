@@ -42,18 +42,21 @@
 template<typename Key = int, typename Config = rocprim::default_config>
 struct device_find_end_benchmark : public config_autotune_interface
 {
-    size_t key_size_ = 10;
+    size_t key_size_  = 10;
+    bool   repeating_ = false;
 
-    device_find_end_benchmark(size_t KeySize)
+    device_find_end_benchmark(size_t KeySize, bool repeating)
     {
-        key_size_ = KeySize;
+        key_size_  = KeySize;
+        repeating_ = repeating;
     }
 
     std::string name() const override
     {
         using namespace std::string_literals;
         return bench_naming::format_name(
-            "{lvl:device,algo:find_end,key_size:" + std::to_string(key_size_)
+            "{lvl:device,algo:find_end,value_pattern:" + (repeating_ ? "repeating"s : "random"s)
+            + ",key_size:" + std::to_string(key_size_)
             + ",value_type:" + std::string(Traits<Key>::name()) + ",cfg:default_config}");
     }
 
@@ -76,10 +79,22 @@ struct device_find_end_benchmark : public config_autotune_interface
                                         generate_limits<key_type>::min(),
                                         generate_limits<key_type>::max(),
                                         seed.get_0());
-        std::vector<key_type> input = get_random_data<key_type>(size,
-                                                                generate_limits<key_type>::min(),
-                                                                generate_limits<key_type>::max(),
-                                                                seed.get_0());
+
+        std::vector<key_type> input(size);
+        if(repeating_)
+        {
+            for(size_t i = 0; i < size; i++)
+            {
+                input[i] = keys_input[i % key_size];
+            }
+        }
+        else
+        {
+            input = get_random_data<key_type>(size,
+                                              generate_limits<key_type>::min(),
+                                              generate_limits<key_type>::max(),
+                                              seed.get_0());
+        }
 
         key_type*    d_keys_input;
         key_type*    d_input;
