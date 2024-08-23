@@ -51,25 +51,48 @@ namespace detail
         }                                                                                        \
     }
 
+template<class InputT, class IdxT, class OpT, class OpResultT>
+struct bounded_equal_op
+{
+    IdxT size;
+    OpT  op;
+
+    // If the third element of the tuple (index) is within [0, size - 2], apply op to the two
+    // first elements of the tuple and return the results (i.e. return <op(tuple.first, tuple.second), idx>).
+    // Else, return <0, idx> (so the last element of the range has a 0 as result of the op and we do not
+    // access out-of-bounds memory).
+    ROCPRIM_HOST_DEVICE
+    inline constexpr ::rocprim::tuple<OpResultT, IdxT>
+        operator()(const ::rocprim::tuple<InputT, InputT, IdxT>& a) const
+    {
+        const IdxT idx = ::rocprim::get<2>(a);
+        return (idx < size - 1) ? ::rocprim::make_tuple(
+                   -OpResultT(op(::rocprim::get<0>(a), ::rocprim::get<1>(a))),
+                   idx) /*idx <= size - 2 */
+                                : ::rocprim::make_tuple(OpResultT(0), idx); /*idx == size - 1 */
+    }
+};
+
 template<class T, class IdxT>
 struct reduce_op
 {
+    // The reduction logic should be as follows:
+    // If both have 1's first, return the one with the smallest index
+    // Else:
+    //  * [opt 1] If only one of them has a 1 first, return the greater tuple (the one with
+    //            the 1 in the first place)
+    //  * [opt 2] If no 1's first, we can return any of the two tuples
+    // But if instead of 1s we use (-1)s, we can perform the reduction operation much faster by always
+    // taking the "lesser" tuple because:
+    //  * If both have (-1)s first, we still return the one with the smallest index
+    //  * If both have 0s first, we can return any of the two tuples
+    //  * If only one of them has a (-1) first, we return the lesser tuple (the one with
+    //    the (-1) in the first place)
     ROCPRIM_DEVICE
     inline constexpr ::rocprim::tuple<T, IdxT>
         operator()(const ::rocprim::tuple<T, IdxT>& lhs, const ::rocprim::tuple<T, IdxT>& rhs) const
     {
-        // If both have 1's first, return the one with the smallest index
-        // Else:
-        //  * [opt 1] If only one of them has a 1 first, return the greater tuple (the one with
-        //            the 1 in the first place)
-        //  * [opt 2] If no 1's first, we can return any of the two tuples
-        const bool both_adjacent_init = ::rocprim::get<0>(lhs) && ::rocprim::get<0>(rhs);
-
-        if((both_adjacent_init && (lhs <= rhs)) || (!both_adjacent_init && (lhs > rhs)))
-        {
-            return lhs;
-        }
-        return rhs;
+        return lhs < rhs ? lhs : rhs;
     }
 };
 
@@ -82,7 +105,7 @@ struct select_adjacent_or_end_op
     inline constexpr IdxT
         operator()(const ::rocprim::tuple<T, IdxT>& a) const
     {
-        return (::rocprim::get<0>(a) == 1) ? ::rocprim::get<1>(a) : size;
+        return (::rocprim::get<0>(a) != 0) ? ::rocprim::get<1>(a) : size;
     }
 };
 
@@ -120,7 +143,7 @@ hipError_t adjacent_find_impl(void* const        temporary_storage,
     auto wrapped_equal_op
         = [op](const wrapped_input_type& a) ROCPRIM_HOST_DEVICE -> transformed_input_type
     {
-        return ::rocprim::make_tuple(op_result_type(op(::rocprim::get<0>(a), ::rocprim::get<1>(a))),
+        return ::rocprim::make_tuple(-op_result_type(op(::rocprim::get<0>(a), ::rocprim::get<1>(a))),
                                      ::rocprim::get<2>(a));
     };
     auto transformed_input = ::rocprim::make_transform_iterator(wrapped_input, wrapped_equal_op);
@@ -164,7 +187,8 @@ hipError_t adjacent_find_impl(void* const        temporary_storage,
     }
 
     index_type* index_output = reinterpret_cast<index_type*>(temporary_storage);
-    result = hipMemcpyAsync(index_output, &size, sizeof(*index_output), hipMemcpyHostToDevice, stream);
+    result
+        = hipMemcpyAsync(index_output, &size, sizeof(*index_output), hipMemcpyHostToDevice, stream);
     if(result != hipSuccess)
     {
         return result;

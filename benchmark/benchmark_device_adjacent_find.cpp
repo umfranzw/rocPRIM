@@ -48,11 +48,11 @@ const size_t DEFAULT_BYTES = size_t{2} << 30; // 2 GiB
 #endif
 
 template<class InputT, class OutputT = std::size_t>
-void run_adjacent_find_benchmark(benchmark::State&   state,
-                                 double              first_adj_pos,
-                                 size_t              bytes,
-                                 const managed_seed& seed,
-                                 hipStream_t         stream)
+void run_adjacent_find_benchmark(benchmark::State& state,
+                                 double            first_adj_pos,
+                                 size_t            bytes,
+                                 const managed_seed& /*seed*/,
+                                 hipStream_t stream)
 {
     using input_type  = InputT;
     using output_type = OutputT;
@@ -191,6 +191,7 @@ void add_adjacent_find_benchmarks(std::vector<benchmark::internal::Benchmark*>& 
            CREATE_ADJACENT_FIND_BENCHMARK(custom_int2),
            CREATE_ADJACENT_FIND_BENCHMARK(custom_char_double),
            CREATE_ADJACENT_FIND_BENCHMARK(custom_longlong_double)};
+    benchmarks.insert(benchmarks.end(), bs.begin(), bs.end());
 }
 
 int main(int argc, char* argv[])
