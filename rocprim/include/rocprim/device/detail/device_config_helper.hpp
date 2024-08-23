@@ -1093,6 +1093,11 @@ struct find_first_of_config_params
     kernel_config_params kernel_config{};
 };
 
+struct adjacent_find_config_params
+{
+    kernel_config_params kernel_config;
+};
+
 } // namespace detail
 
 /// \brief Configuration of device-level find_first_of
@@ -1109,6 +1114,22 @@ struct find_first_of_config : public detail::find_first_of_config_params
     }
     {}
 #endif
+};
+
+/// \brief Configuration of device-level adjacent_find
+///
+/// \tparam BlockSize number of threads in a block.
+/// \tparam ItemsPerThread number of items processed by each thread.
+template<unsigned int BlockSize, unsigned int ItemsPerThread>
+struct adjacent_find_config : public detail::adjacent_find_config_params
+{
+#ifndef DOXYGEN_DOCUMENTATION_BUILD
+    constexpr adjacent_find_config()
+        : detail::adjacent_find_config_params{
+            {BlockSize, ItemsPerThread, ROCPRIM_GRID_SIZE_LIMIT}
+    }
+    {}
+#endif // DOXYGEN_DOCUMENTATION_BUILD
 };
 
 namespace detail

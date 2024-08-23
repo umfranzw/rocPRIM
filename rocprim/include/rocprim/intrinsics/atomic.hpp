@@ -118,7 +118,8 @@ namespace detail
         return __hip_atomic_load(address, __ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT);
     }
 
-    ROCPRIM_DEVICE ROCPRIM_INLINE void atomic_store(unsigned char* address, unsigned char value)
+    ROCPRIM_DEVICE ROCPRIM_INLINE
+    void atomic_store(unsigned char* address, unsigned char value)
     {
         __hip_atomic_store(address, value, __ATOMIC_RELAXED, __HIP_MEMORY_SCOPE_AGENT);
     }

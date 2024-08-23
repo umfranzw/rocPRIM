@@ -21,6 +21,10 @@
 #ifndef ROCPRIM_DEVICE_DEVICE_ADJACENT_FIND_HPP_
 #define ROCPRIM_DEVICE_DEVICE_ADJACENT_FIND_HPP_
 
+#include "detail/device_adjacent_find.hpp"
+#include "detail/device_config_helper.hpp"
+#include "detail/ordered_block_id.hpp"
+#include "device_adjacent_find_config.hpp"
 #include "device_reduce.hpp"
 #include "device_transform.hpp"
 
@@ -51,27 +55,16 @@ namespace detail
         }                                                                                        \
     }
 
-template<class InputT, class IdxT, class OpT, class OpResultT>
-struct bounded_equal_op
-{
-    IdxT size;
-    OpT  op;
-
-    // If the third element of the tuple (index) is within [0, size - 2], apply op to the two
-    // first elements of the tuple and return the results (i.e. return <op(tuple.first, tuple.second), idx>).
-    // Else, return <0, idx> (so the last element of the range has a 0 as result of the op and we do not
-    // access out-of-bounds memory).
-    ROCPRIM_HOST_DEVICE
-    inline constexpr ::rocprim::tuple<OpResultT, IdxT>
-        operator()(const ::rocprim::tuple<InputT, InputT, IdxT>& a) const
-    {
-        const IdxT idx = ::rocprim::get<2>(a);
-        return (idx < size - 1) ? ::rocprim::make_tuple(
-                   -OpResultT(op(::rocprim::get<0>(a), ::rocprim::get<1>(a))),
-                   idx) /*idx <= size - 2 */
-                                : ::rocprim::make_tuple(OpResultT(0), idx); /*idx == size - 1 */
-    }
-};
+#define RETURN_ON_ERROR(...)              \
+    do                                    \
+    {                                     \
+        hipError_t error = (__VA_ARGS__); \
+        if(error != hipSuccess)           \
+        {                                 \
+            return error;                 \
+        }                                 \
+    }                                     \
+    while(0)
 
 template<class T, class IdxT>
 struct reduce_op
@@ -96,156 +89,127 @@ struct reduce_op
     }
 };
 
-template<class T, class IdxT>
-struct select_adjacent_or_end_op
-{
-    IdxT size;
-
-    ROCPRIM_DEVICE
-    inline constexpr IdxT
-        operator()(const ::rocprim::tuple<T, IdxT>& a) const
-    {
-        return (::rocprim::get<0>(a) != 0) ? ::rocprim::get<1>(a) : size;
-    }
-};
-
 template<typename Config = default_config,
-         typename InputIteratorType,
-         typename OutputIteratorType,
+         typename InputIterator,
+         typename OutputIterator,
          typename BinaryPred>
 ROCPRIM_INLINE
-hipError_t adjacent_find_impl(void* const        temporary_storage,
-                              std::size_t&       storage_size,
-                              InputIteratorType  input,
-                              OutputIteratorType output,
-                              const std::size_t  size,
-                              BinaryPred         op,
-                              const hipStream_t  stream,
-                              const bool         debug_synchronous)
+hipError_t adjacent_find_impl(void* const       temporary_storage,
+                              std::size_t&      storage_size,
+                              InputIterator     input,
+                              OutputIterator    output,
+                              const std::size_t size,
+                              BinaryPred        op,
+                              const hipStream_t stream,
+                              const bool        debug_synchronous)
 {
     // Data types
-    using input_type             = typename std::iterator_traits<InputIteratorType>::value_type;
+    using input_type             = typename std::iterator_traits<InputIterator>::value_type;
     using op_result_type         = int; // use signed type to store (-1)s instead of 1s
     using index_type             = std::size_t;
     using wrapped_input_type     = ::rocprim::tuple<input_type, input_type, index_type>;
     using transformed_input_type = ::rocprim::tuple<op_result_type, index_type>;
 
     // Operations types
-    using reduce_op_type          = reduce_op<op_result_type, index_type>;
-    using final_transform_op_type = select_adjacent_or_end_op<op_result_type, index_type>;
+    using reduce_op_type = reduce_op<op_result_type, index_type>;
 
-    // Wrap adjacent input in zip iterator with idx values
-    auto iota = ::rocprim::make_counting_iterator<index_type>(0);
-    auto wrapped_input
-        = ::rocprim::make_zip_iterator(::rocprim::make_tuple(input, input + 1, iota));
+    // Calculate required temporary storage
+    index_type* reduce_output = nullptr;
 
-    // Transform input
-    auto wrapped_equal_op
-        = [op](const wrapped_input_type& a) ROCPRIM_HOST_DEVICE -> transformed_input_type
-    {
-        return ::rocprim::make_tuple(-op_result_type(op(::rocprim::get<0>(a), ::rocprim::get<1>(a))),
-                                     ::rocprim::get<2>(a));
-    };
-    auto transformed_input = ::rocprim::make_transform_iterator(wrapped_input, wrapped_equal_op);
-
-    hipError_t              result;
-    const reduce_op_type    reduce_op{};
-    transformed_input_type* reduce_output = nullptr;
-
-    // Calculate size of temporary storage for reduce operation
-    std::size_t reduce_bytes;
-    result = ::rocprim::reduce<Config>(nullptr,
-                                       reduce_bytes,
-                                       transformed_input,
-                                       reduce_output,
-                                       std::size_t{size - 1},
-                                       reduce_op,
-                                       stream,
-                                       debug_synchronous);
-    if(result != hipSuccess)
-    {
-        return result;
-    }
-    reduce_bytes = ::rocprim::detail::align_size(reduce_bytes);
-
-    // Calculate size of reduction
-    result = detail::temp_storage::partition(
+    hipError_t result = detail::temp_storage::partition(
         temporary_storage,
         storage_size,
         detail::temp_storage::make_linear_partition(
-            detail::temp_storage::ptr_aligned_array(&reduce_output,
-                                                    sizeof(transformed_input_type))));
+            detail::temp_storage::ptr_aligned_array(&reduce_output, sizeof(*reduce_output))));
 
-    if(temporary_storage == nullptr)
-    {
-        storage_size += reduce_bytes;
-        return result;
-    }
-    if(result != hipSuccess)
+    if(result != hipSuccess || temporary_storage == nullptr)
     {
         return result;
     }
 
-    index_type* index_output = reinterpret_cast<index_type*>(temporary_storage);
-    result
-        = hipMemcpyAsync(index_output, &size, sizeof(*index_output), hipMemcpyHostToDevice, stream);
-    if(result != hipSuccess)
-    {
-        return result;
-    }
+    RETURN_ON_ERROR(hipMemcpyAsync(reduce_output,
+                                   &size,
+                                   sizeof(*reduce_output),
+                                   hipMemcpyHostToDevice,
+                                   stream));
 
     if(size > 1)
     {
-        // Launch reduction
+        // Wrap adjacent input in zip iterator with idx values
+        auto iota = ::rocprim::make_counting_iterator<index_type>(0);
+        auto wrapped_input
+            = ::rocprim::make_zip_iterator(::rocprim::make_tuple(input, input + 1, iota));
+
+        // Transform input
+        auto wrapped_equal_op = [op](const wrapped_input_type& a) -> transformed_input_type
+        {
+            return ::rocprim::make_tuple(
+                -op_result_type(op(::rocprim::get<0>(a), ::rocprim::get<1>(a))),
+                ::rocprim::get<2>(a));
+        };
+        auto transformed_input
+            = ::rocprim::make_transform_iterator(wrapped_input, wrapped_equal_op);
+
+        // Kernel launch config
+        using config = wrapped_adjacent_find_config<Config, input_type>;
+        auto adjacent_find_block_reduce_kernel
+            = adjacent_find::block_reduce_kernel<config,
+                                                 decltype(transformed_input),
+                                                 decltype(reduce_output),
+                                                 reduce_op_type>;
+        target_arch target_arch;
+        RETURN_ON_ERROR(host_target_arch(stream, target_arch));
+        const adjacent_find_config_params params     = dispatch_target_arch<config>(target_arch);
+        const unsigned int                block_size = params.kernel_config.block_size;
+        const unsigned int                items_per_thread = params.kernel_config.items_per_thread;
+        const unsigned int                items_per_block  = block_size * items_per_thread;
+        const unsigned int grid_size        = (size + items_per_block - 1) / items_per_block;
+        const unsigned int shared_mem_bytes = 0; /*no dynamic shared mem*/
+
+        // Launch adjacent_find::block_reduce_kernel
         std::chrono::time_point<std::chrono::high_resolution_clock> start;
         if(debug_synchronous)
+        {
             start = std::chrono::high_resolution_clock::now();
-        result = ::rocprim::reduce<Config>(temporary_storage,
-                                           reduce_bytes,
-                                           transformed_input,
-                                           reduce_output,
-                                           std::size_t{size - 1},
-                                           reduce_op,
-                                           stream,
-                                           debug_synchronous);
-        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("rocprim::reduce", size, start)
+        }
 
-        // Get final result. If an adjacent equal pair was found (reduce_output.first == 1) return the
-        // distance to the first element of the pair. Else, return distance to the end.
-        result = ::rocprim::transform<Config>(reduce_output,
-                                              index_output,
-                                              1,
-                                              final_transform_op_type{size},
-                                              stream,
-                                              debug_synchronous);
+        // Launch adjacent_find::block_reduce_kernel
+        adjacent_find_block_reduce_kernel<<<grid_size, block_size, shared_mem_bytes, stream>>>(
+            transformed_input,
+            reduce_output,
+            std::size_t{size - 1},
+            reduce_op_type{});
+        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(
+            "rocprim::detail::adjacent_find::block_reduce_kernel",
+            size,
+            start);
     }
 
-    result = ::rocprim::transform<Config>(index_output,
-                                          output,
-                                          1,
-                                          ::rocprim::identity<void>(),
-                                          stream,
-                                          debug_synchronous);
+    RETURN_ON_ERROR(hipMemcpyAsync(output,
+                                   reduce_output,
+                                   sizeof(*reduce_output),
+                                   hipMemcpyDeviceToDevice,
+                                   stream));
 
-    return result;
+    return hipSuccess;
 }
 
 } // namespace detail
 
 template<typename Config = default_config,
-         typename InputIteratorType,
-         typename OutputIteratorType,
+         typename InputIterator,
+         typename OutputIterator,
          typename BinaryPred
-         = ::rocprim::equal_to<typename std::iterator_traits<InputIteratorType>::value_type>>
+         = ::rocprim::equal_to<typename std::iterator_traits<InputIterator>::value_type>>
 ROCPRIM_INLINE
-hipError_t adjacent_find(void* const        temporary_storage,
-                         std::size_t&       storage_size,
-                         InputIteratorType  input,
-                         OutputIteratorType output,
-                         const std::size_t  size,
-                         BinaryPred         op                = BinaryPred{},
-                         const hipStream_t  stream            = 0,
-                         const bool         debug_synchronous = false)
+hipError_t adjacent_find(void* const       temporary_storage,
+                         std::size_t&      storage_size,
+                         InputIterator     input,
+                         OutputIterator    output,
+                         const std::size_t size,
+                         BinaryPred        op                = BinaryPred{},
+                         const hipStream_t stream            = 0,
+                         const bool        debug_synchronous = false)
 {
     return detail::adjacent_find_impl<Config>(temporary_storage,
                                               storage_size,
