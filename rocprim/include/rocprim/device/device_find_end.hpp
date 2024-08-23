@@ -120,9 +120,146 @@ void find_end_kernel(InputIterator1 input,
                 break;
             }
         }
-        if(current_id < size && i == (keys_size - 1) && compare_function(keys[i], input[current_id]))
+        if(current_id < size && i == (keys_size - 1)
+           && compare_function(keys[i], input[current_id]))
         {
             highest_index = id;
+            find_pattern  = true;
+        }
+    }
+
+    // Construct a mask of threads in this wave which have the same digit.
+    rocprim::lane_mask_type peer_mask = ::rocprim::match_any<2>(find_pattern);
+
+    rocprim::wave_barrier();
+
+    // The total number of threads in the warp which also have this digit.
+    const unsigned int digit_count = rocprim::bit_count(peer_mask);
+    // The number of threads in the warp that have the same digit AND whose lane id is lower
+    // than the current thread's.
+    const unsigned int peer_digit_prefix = rocprim::masked_bit_count(peer_mask);
+
+    if(find_pattern && (peer_digit_prefix == digit_count - 1))
+    {
+        if(output[0] == size)
+        {
+            atomic_cas(output, size, highest_index);
+        }
+        atomic_max(output, highest_index);
+    }
+}
+
+template<class Config,
+         unsigned int SharedMemSize,
+         class InputIterator1,
+         class InputIterator2,
+         class OutputType,
+         class BinaryFunction>
+ROCPRIM_KERNEL
+__launch_bounds__(device_params<Config>().kernel_config.block_size)
+void find_end_kernel_shared(InputIterator1 input,
+                            InputIterator2 keys,
+                            OutputType*    output,
+                            size_t         size,
+                            size_t         keys_size,
+                            BinaryFunction compare_function)
+{
+    using value_type = typename std::iterator_traits<InputIterator1>::value_type;
+    using key_type   = typename std::iterator_traits<InputIterator2>::value_type;
+
+    constexpr find_end_config_params params = device_params<Config>();
+
+    constexpr unsigned int block_size       = params.kernel_config.block_size;
+    constexpr unsigned int items_per_thread = params.kernel_config.items_per_thread;
+    constexpr unsigned int items_per_block  = block_size * items_per_thread;
+
+    const unsigned int flat_id       = rocprim::detail::block_thread_id<0>();
+    const unsigned int flat_block_id = rocprim::detail::block_id<0>();
+
+    const OutputType block_offset = flat_block_id * items_per_block;
+    const OutputType offset       = flat_id * items_per_thread;
+    bool find_pattern = false;
+
+    ROCPRIM_SHARED_MEMORY uninitialized_array<key_type, SharedMemSize> local_keys_;
+    ROCPRIM_SHARED_MEMORY uninitialized_array<value_type, items_per_block> local_input_;
+
+    const size_t batch_size = ceiling_div(keys_size, block_size);
+    for(size_t i = 0; i < batch_size; i++)
+    {
+        const size_t index = flat_id * batch_size + i;
+        if(index < keys_size)
+        {
+            local_keys_.emplace(index, keys[index]);
+        }
+    }
+
+    using block_load_input = block_load<value_type, items_per_thread, items_per_thread>;
+
+    value_type elements[items_per_thread];
+
+    const bool is_complete_block = block_offset + items_per_block <= size;
+
+    if(is_complete_block)
+    {
+        block_load_input().load(input + block_offset, elements);
+        for(size_t i = 0; i < items_per_thread; i++)
+        {
+            const size_t index = flat_id * items_per_thread + i;
+            local_input_.emplace(index, elements[i]);
+        }
+    }
+    else
+    {
+        block_load_input().load(input + block_offset, elements, size - block_offset);
+        for(size_t i = 0; i < items_per_thread; i++)
+        {
+            const size_t index       = flat_id * items_per_thread + i;
+            const size_t index_value = block_offset + index;
+            if(index_value < size)
+            {
+                local_input_.emplace(index, elements[i]);
+            }
+        }
+    }
+
+    const key_type*   local_keys  = local_keys_.get_unsafe_array();
+    const value_type* local_input = local_input_.get_unsafe_array();
+
+    syncthreads();
+
+    if(offset + block_offset >= size || offset + block_offset + keys_size > size)
+    {
+        return;
+    }
+
+    OutputType       highest_index = 0;
+    const OutputType check         = size - block_offset;
+    const OutputType check_both    = rocprim::min(check, OutputType(items_per_block));
+    for(OutputType id = offset; id < offset + items_per_thread; id++)
+    {
+        OutputType i          = 0;
+        OutputType current_id = id;
+        for(; i < keys_size - 1 && current_id < check_both; i++, current_id++)
+        {
+            if(!compare_function(local_keys[i], local_input[current_id]))
+            {
+                break;
+            }
+        }
+        for(; i < keys_size - 1 && current_id < check; i++, current_id++)
+        {
+            if(!compare_function(local_keys[i], input[current_id + block_offset]))
+            {
+                break;
+            }
+        }
+
+        if(current_id + block_offset < size && i == (keys_size - 1)
+           && compare_function(local_keys[i],
+                               current_id < items_per_block ? local_input[current_id]
+                                                            : input[current_id + block_offset]))
+        {
+            highest_index = id + block_offset;
             find_pattern  = true;
         }
     }
@@ -190,6 +327,8 @@ hipError_t find_end_impl(void*          temporary_storage,
     const unsigned int items_per_thread = params.kernel_config.items_per_thread;
     const unsigned int items_per_block  = block_size * items_per_thread;
 
+    constexpr unsigned int shared_mem_size = 256;
+
     // Start point for time measurements
     std::chrono::steady_clock::time_point start;
 
@@ -221,14 +360,29 @@ hipError_t find_end_impl(void*          temporary_storage,
     if(size > 0 && keys_size > 0)
     {
         const unsigned int num_blocks = ceiling_div(size, items_per_block);
-        start_timer();
-        find_end_kernel<config><<<num_blocks, block_size, 0, stream>>>(input,
-                                                                       keys,
-                                                                       tmp_output,
-                                                                       size,
-                                                                       keys_size,
-                                                                       compare_function);
-        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("find_end_kernel", size, start);
+        if(keys_size < shared_mem_size)
+        {
+            start_timer();
+            find_end_kernel_shared<config, shared_mem_size>
+                <<<num_blocks, block_size, 0, stream>>>(input,
+                                                        keys,
+                                                        tmp_output,
+                                                        size,
+                                                        keys_size,
+                                                        compare_function);
+            ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("find_end_kernel_shared", size, start);
+        }
+        else
+        {
+            start_timer();
+            find_end_kernel<config><<<num_blocks, block_size, 0, stream>>>(input,
+                                                                           keys,
+                                                                           tmp_output,
+                                                                           size,
+                                                                           keys_size,
+                                                                           compare_function);
+            ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("find_end_kernel", size, start);
+        }
     }
 
     RETURN_ON_ERROR(transform(tmp_output,
