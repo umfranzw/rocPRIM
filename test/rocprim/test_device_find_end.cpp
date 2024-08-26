@@ -33,6 +33,7 @@
 #include "rocprim/device/device_find_end.hpp"
 
 #include <cstddef>
+#include <vector>
 
 // Params for tests
 template<class ValueType,
@@ -94,7 +95,14 @@ using RocprimDeviceFindEndTestsParams = ::testing::Types<
                         rocprim::equal_to<int>,
                         rocprim::default_config,
                         false,
-                        true>>;
+                        true>,
+    DeviceFindEndParams<int,
+                        int,
+                        size_t,
+                        rocprim::equal_to<int>,
+                        rocprim::find_end_config<64, 16>,
+                        false,
+                        false>>;
 
 TYPED_TEST_SUITE(RocprimDeviceFindEndTests, RocprimDeviceFindEndTestsParams);
 
@@ -112,6 +120,8 @@ TYPED_TEST(RocprimDeviceFindEndTests, FindEnd)
     const bool     debug_synchronous     = TestFixture::debug_synchronous;
     constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
 
+    std::vector<size_t> key_sizes = {0, 1, 10, 1000};
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -122,144 +132,147 @@ TYPED_TEST(RocprimDeviceFindEndTests, FindEnd)
         {
             hipStream_t stream = 0; // default
 
-            size_t key_size = std::min(size / 2, size_t(10));
-
-            SCOPED_TRACE(testing::Message() << "with key size = " << key_size);
-
-            if(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
-
             SCOPED_TRACE(testing::Message() << "with size = " << size);
 
-            size_t pattern = 0;
-            if(size > 0)
+            for(size_t key_size : key_sizes)
             {
-                pattern = test_utils::get_random_value<size_t>(0, size - 1, seed_value);
-            }
+                SCOPED_TRACE(testing::Message() << "with key size = " << key_size);
 
-            SCOPED_TRACE(testing::Message() << "with index = " << pattern);
+                if(TestFixture::use_graphs)
+                {
+                    // Default stream does not support hipGraph stream capture, so create one
+                    HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
+                }
 
-            // Generate data
-            std::vector<value_type> input;
-            if(rocprim::is_floating_point<value_type>::value)
-            {
-                input = test_utils::get_random_data<value_type>(size, -1000, 1000, seed_value);
-            }
-            else
-            {
-                input = test_utils::get_random_data<value_type>(
-                    size,
-                    test_utils::numeric_limits<value_type>::min(),
-                    test_utils::numeric_limits<value_type>::max(),
-                    seed_value);
-            }
+                size_t pattern = 0;
+                if(size > 0)
+                {
+                    pattern = test_utils::get_random_value<size_t>(0, size - 1, seed_value);
+                }
 
-            std::vector<key_type> keys(key_size);
-            if(pattern + key_size < size)
-            {
-                keys.assign(input.begin(), input.begin() + key_size);
-            }
-            else
-            {
-                keys.assign(input.begin(), input.end());
-            }
+                SCOPED_TRACE(testing::Message() << "with index = " << pattern);
 
-            value_type* d_input;
-            key_type*   d_keys;
-            index_type* d_output;
-            HIP_CHECK(
-                test_common_utils::hipMallocHelper(&d_input, input.size() * sizeof(*d_input)));
+                // Generate data
+                std::vector<value_type> input;
+                if(rocprim::is_floating_point<value_type>::value)
+                {
+                    input = test_utils::get_random_data<value_type>(size, -1000, 1000, seed_value);
+                }
+                else
+                {
+                    input = test_utils::get_random_data<value_type>(
+                        size,
+                        test_utils::numeric_limits<value_type>::min(),
+                        test_utils::numeric_limits<value_type>::max(),
+                        seed_value);
+                }
 
-            HIP_CHECK(test_common_utils::hipMallocHelper(&d_keys, keys.size() * sizeof(*d_keys)));
+                std::vector<key_type> keys(key_size);
+                if(pattern + key_size < size)
+                {
+                    keys.assign(input.begin(), input.begin() + key_size);
+                }
+                else
+                {
+                    keys.assign(input.begin(), input.end());
+                }
 
-            HIP_CHECK(test_common_utils::hipMallocHelper(&d_output, sizeof(*d_output)));
+                value_type* d_input;
+                key_type*   d_keys;
+                index_type* d_output;
+                HIP_CHECK(
+                    test_common_utils::hipMallocHelper(&d_input, input.size() * sizeof(*d_input)));
 
-            HIP_CHECK(hipMemcpy(d_input,
-                                input.data(),
-                                input.size() * sizeof(*d_input),
-                                hipMemcpyHostToDevice));
+                HIP_CHECK(
+                    test_common_utils::hipMallocHelper(&d_keys, keys.size() * sizeof(*d_keys)));
 
-            HIP_CHECK(hipMemcpy(d_keys,
-                                keys.data(),
-                                keys.size() * sizeof(*d_keys),
-                                hipMemcpyHostToDevice));
+                HIP_CHECK(test_common_utils::hipMallocHelper(&d_output, sizeof(*d_output)));
 
-            const auto input_it
-                = test_utils::wrap_in_indirect_iterator<use_indirect_iterator>(d_input);
+                HIP_CHECK(hipMemcpy(d_input,
+                                    input.data(),
+                                    input.size() * sizeof(*d_input),
+                                    hipMemcpyHostToDevice));
 
-            // compare function
-            compare_function compare_op;
+                HIP_CHECK(hipMemcpy(d_keys,
+                                    keys.data(),
+                                    keys.size() * sizeof(*d_keys),
+                                    hipMemcpyHostToDevice));
 
-            // temp storage
-            size_t temp_storage_size_bytes;
-            void*  d_temp_storage = nullptr;
-            // Get size of d_temp_storage
-            HIP_CHECK(rocprim::find_end<config>(nullptr,
-                                                temp_storage_size_bytes,
-                                                input_it,
-                                                d_keys,
-                                                d_output,
-                                                input.size(),
-                                                keys.size(),
-                                                compare_op,
-                                                stream,
-                                                debug_synchronous));
+                const auto input_it
+                    = test_utils::wrap_in_indirect_iterator<use_indirect_iterator>(d_input);
 
-            // temp_storage_size_bytes must be >0
-            ASSERT_GT(temp_storage_size_bytes, 0);
+                // compare function
+                compare_function compare_op;
 
-            // allocate temporary storage
-            HIP_CHECK(test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size_bytes));
+                // temp storage
+                size_t temp_storage_size_bytes;
+                void*  d_temp_storage = nullptr;
+                // Get size of d_temp_storage
+                HIP_CHECK(rocprim::find_end<config>(nullptr,
+                                                    temp_storage_size_bytes,
+                                                    input_it,
+                                                    d_keys,
+                                                    d_output,
+                                                    input.size(),
+                                                    keys.size(),
+                                                    compare_op,
+                                                    stream,
+                                                    debug_synchronous));
 
-            hipGraph_t graph;
-            if(TestFixture::use_graphs)
-            {
-                graph = test_utils::createGraphHelper(stream);
-            }
+                // temp_storage_size_bytes must be >0
+                ASSERT_GT(temp_storage_size_bytes, 0);
 
-            // Run
-            HIP_CHECK(rocprim::find_end<config>(d_temp_storage,
-                                                temp_storage_size_bytes,
-                                                input_it,
-                                                d_keys,
-                                                d_output,
-                                                input.size(),
-                                                keys.size(),
-                                                compare_op,
-                                                stream,
-                                                debug_synchronous));
+                // allocate temporary storage
+                HIP_CHECK(
+                    test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size_bytes));
 
-            hipGraphExec_t graph_instance;
-            if(TestFixture::use_graphs)
-            {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
-            }
+                hipGraph_t graph;
+                if(TestFixture::use_graphs)
+                {
+                    graph = test_utils::createGraphHelper(stream);
+                }
 
-            HIP_CHECK(hipGetLastError());
-            HIP_CHECK(hipDeviceSynchronize());
+                // Run
+                HIP_CHECK(rocprim::find_end<config>(d_temp_storage,
+                                                    temp_storage_size_bytes,
+                                                    input_it,
+                                                    d_keys,
+                                                    d_output,
+                                                    input.size(),
+                                                    keys.size(),
+                                                    compare_op,
+                                                    stream,
+                                                    debug_synchronous));
 
-            index_type output;
-            // Copy output to host
-            HIP_CHECK(hipMemcpy(&output, d_output, sizeof(*d_output), hipMemcpyDeviceToHost));
+                hipGraphExec_t graph_instance;
+                if(TestFixture::use_graphs)
+                {
+                    graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                }
 
-            index_type expected
-                = std::find_end(input.begin(), input.end(), keys.begin(), keys.end())
-                  - input.begin();
+                HIP_CHECK(hipGetLastError());
+                HIP_CHECK(hipDeviceSynchronize());
 
-            ASSERT_EQ(output, expected);
+                index_type output;
+                // Copy output to host
+                HIP_CHECK(hipMemcpy(&output, d_output, sizeof(*d_output), hipMemcpyDeviceToHost));
 
-            HIP_CHECK(hipFree(d_input));
-            HIP_CHECK(hipFree(d_keys));
-            HIP_CHECK(hipFree(d_output));
-            HIP_CHECK(hipFree(d_temp_storage));
+                index_type expected
+                    = std::find_end(input.begin(), input.end(), keys.begin(), keys.end())
+                      - input.begin();
 
-            if(TestFixture::use_graphs)
-            {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
-                HIP_CHECK(hipStreamDestroy(stream));
+                ASSERT_EQ(output, expected);
+
+                HIP_CHECK(hipFree(d_input));
+                HIP_CHECK(hipFree(d_keys));
+                HIP_CHECK(hipFree(d_output));
+                HIP_CHECK(hipFree(d_temp_storage));
+
+                if(TestFixture::use_graphs)
+                {
+                    test_utils::cleanupGraphHelper(graph, graph_instance);
+                    HIP_CHECK(hipStreamDestroy(stream));
+                }
             }
         }
     }
