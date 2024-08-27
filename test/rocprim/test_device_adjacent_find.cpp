@@ -179,13 +179,34 @@ TYPED_TEST(RocprimDeviceAdjacentFindTests, AdjacentFind)
 
             SCOPED_TRACE(testing::Message() << "with size = " << size);
 
-            // Generate data
-            std::vector<T> input(size);
-            // = test_utils::get_random_data<T>(size, 1, 100, seed_value);
-            std::iota(input.begin(), input.end(), 0);
+            // Generate input values
+            std::vector<T> input;
+            if(rocprim::is_floating_point<T>::value)
+            {
+                input = test_utils::get_random_data<T>(size, -1000, 1000, seed_value);
+            }
+            else
+            {
+                input = test_utils::get_random_data<T>(size,
+                                                       test_utils::numeric_limits<T>::min(),
+                                                       test_utils::numeric_limits<T>::max(),
+                                                       seed_value);
+            }
+
+            // Get random index for first adjacent pair
+            std::size_t first_adj_index = 0;
             if(size > 1)
             {
-                input[size / 2] = input[size / 2 + 1];
+                first_adj_index
+                    = test_utils::get_random_value<std::size_t>(0, size - 2, seed_value);
+            }
+            SCOPED_TRACE(testing::Message() << "with first_adj_index = " << first_adj_index);
+
+            if(size > 1)
+            {
+                // Ensure that it is the real first adjacent pair index
+                std::iota(input.begin(), input.begin() + first_adj_index + 1, 0);
+                input[first_adj_index] = input[first_adj_index + 1];
             }
 
             T*           d_input;
