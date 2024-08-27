@@ -33,6 +33,8 @@
 #include "../iterator/zip_iterator.hpp"
 #include "../types/tuple.hpp"
 
+#include <cstring>
+
 BEGIN_ROCPRIM_NAMESPACE
 
 namespace detail
@@ -112,13 +114,28 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
     // Operations types
     using reduce_op_type = reduce_op<op_result_type, index_type>;
 
+    // Use dynamic block id
+    using ordered_tile_id_type = detail::ordered_block_id<unsigned int>;
+
+    // Kernel launch config
+    using config = wrapped_adjacent_find_config<Config, input_type>;
+
+    // Host blocks_done_count initialization
+    int h_blocks_done_count = 0;
+
     // Calculate required temporary storage
-    index_type* reduce_output = nullptr;
+    ordered_tile_id_type::id_type* ordered_bid_storage;
+    index_type*                    reduce_output       = nullptr;
+    int*                           d_blocks_done_count = nullptr;
 
     hipError_t result = detail::temp_storage::partition(
         temporary_storage,
         storage_size,
         detail::temp_storage::make_linear_partition(
+            detail::temp_storage::make_partition(&ordered_bid_storage,
+                                                 ordered_tile_id_type::get_temp_storage_layout()),
+            detail::temp_storage::ptr_aligned_array(&d_blocks_done_count,
+                                                    sizeof(*d_blocks_done_count)),
             detail::temp_storage::ptr_aligned_array(&reduce_output, sizeof(*reduce_output))));
 
     if(result != hipSuccess || temporary_storage == nullptr)
@@ -131,9 +148,17 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
                                    sizeof(*reduce_output),
                                    hipMemcpyHostToDevice,
                                    stream));
+    RETURN_ON_ERROR(hipMemcpyAsync(d_blocks_done_count,
+                                   &h_blocks_done_count,
+                                   sizeof(*d_blocks_done_count),
+                                   hipMemcpyHostToDevice,
+                                   stream));
 
     if(size > 1)
     {
+        auto ordered_bid = ordered_tile_id_type::create(ordered_bid_storage);
+        adjacent_find::init_ordered_bid<<<1, 1, 0, stream>>>(ordered_bid);
+
         // Wrap adjacent input in zip iterator with idx values
         auto iota = ::rocprim::make_counting_iterator<index_type>(0);
         auto wrapped_input
@@ -149,8 +174,6 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
         auto transformed_input
             = ::rocprim::make_transform_iterator(wrapped_input, wrapped_equal_op);
 
-        // Kernel launch config
-        using config = wrapped_adjacent_find_config<Config, input_type>;
         auto adjacent_find_block_reduce_kernel
             = adjacent_find::block_reduce_kernel<config,
                                                  decltype(transformed_input),
@@ -188,7 +211,9 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
             transformed_input,
             reduce_output,
             std::size_t{size - 1},
-            reduce_op_type{});
+            reduce_op_type{},
+            ordered_bid,
+            d_blocks_done_count);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(
             "rocprim::detail::adjacent_find::block_reduce_kernel",
             size,
