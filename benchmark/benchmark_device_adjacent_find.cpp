@@ -49,7 +49,7 @@ const size_t DEFAULT_BYTES = size_t{2} << 30; // 2 GiB
 
 template<class InputT, class OutputT = std::size_t>
 void run_adjacent_find_benchmark(benchmark::State&   state,
-                                 double              first_adjacent_pair,
+                                 double              first_adj_pos,
                                  size_t              bytes,
                                  const managed_seed& seed,
                                  hipStream_t         stream)
@@ -58,20 +58,21 @@ void run_adjacent_find_benchmark(benchmark::State&   state,
     using output_type = OutputT;
 
     const size_t size        = bytes / sizeof(input_type);
-    const size_t warmup_size = 10;
+    const size_t warmup_size = 5;
     const size_t batch_size  = 10;
 
-    // Generate data
-    std::vector<input_type> input = get_random_data<input_type>(size,
-                                                                generate_limits<input_type>::min(),
-                                                                generate_limits<input_type>::max(),
-                                                                seed.get_0());
+    // Generate data ensuring there is no adjacent pair before first_adj_index
+    std::vector<input_type> input(size);
+    std::iota(input.begin(), input.end(), 0);
 
-    const size_t first_adjacent_pair_idx = static_cast<size_t>(size * first_adjacent_pair);
-    if(first_adjacent_pair_idx < size - 1)
+    // Insert first adjacent pair
+    std::size_t first_adj_index = static_cast<std::size_t>(size * first_adj_pos);
+    if(first_adj_index >= size - 1)
     {
-        input[first_adjacent_pair_idx] = input[first_adjacent_pair_idx + 1];
+        first_adj_index = size - 2;
     }
+
+    input[first_adj_index] = input[first_adj_index + 1];
 
     input_type*  d_input;
     output_type* d_output;
@@ -80,12 +81,12 @@ void run_adjacent_find_benchmark(benchmark::State&   state,
     HIP_CHECK(
         hipMemcpy(d_input, input.data(), input.size() * sizeof(*d_input), hipMemcpyHostToDevice));
 
-    std::size_t temp_storage_size;
-    void*       d_temp_storage       = nullptr;
+    std::size_t tmp_storage_size;
+    void*       d_tmp_storage        = nullptr;
     auto        launch_adjacent_find = [&]()
     {
-        HIP_CHECK(::rocprim::adjacent_find(d_temp_storage,
-                                           temp_storage_size,
+        HIP_CHECK(::rocprim::adjacent_find(d_tmp_storage,
+                                           tmp_storage_size,
                                            d_input,
                                            d_output,
                                            size,
@@ -94,9 +95,9 @@ void run_adjacent_find_benchmark(benchmark::State&   state,
                                            false));
     };
 
-    // Get size of temporary storage
+    // Get size of tmporary storage
     launch_adjacent_find();
-    HIP_CHECK(hipMalloc(&d_temp_storage, temp_storage_size));
+    HIP_CHECK(hipMalloc(&d_tmp_storage, tmp_storage_size));
 
     // Warm-up
     for(size_t i = 0; i < warmup_size; i++)
@@ -125,6 +126,9 @@ void run_adjacent_find_benchmark(benchmark::State&   state,
         HIP_CHECK(hipEventRecord(stop, stream));
         HIP_CHECK(hipEventSynchronize(stop));
 
+        HIP_CHECK(hipGetLastError());
+        HIP_CHECK(hipDeviceSynchronize());
+
         float elapsed_mseconds;
         HIP_CHECK(hipEventElapsedTime(&elapsed_mseconds, start, stop));
         state.SetIterationTime(elapsed_mseconds / 1000);
@@ -134,52 +138,59 @@ void run_adjacent_find_benchmark(benchmark::State&   state,
     HIP_CHECK(hipEventDestroy(start));
     HIP_CHECK(hipEventDestroy(stop));
 
-    state.SetBytesProcessed(state.iterations() * batch_size * size * sizeof(*d_input));
-    state.SetItemsProcessed(state.iterations() * batch_size * size);
+    state.SetBytesProcessed(state.iterations() * batch_size * first_adj_index * sizeof(*d_input));
+    state.SetItemsProcessed(state.iterations() * batch_size * first_adj_index);
 
     HIP_CHECK(hipFree(d_input));
     HIP_CHECK(hipFree(d_output));
-    HIP_CHECK(hipFree(d_temp_storage));
+    HIP_CHECK(hipFree(d_tmp_storage));
 }
 
-#define CREATE_ADJACENT_FIND_BENCHMARK(T)                                                         \
-    benchmark::RegisterBenchmark(                                                                 \
-        bench_naming::format_name("{lvl:device,algo:adjacent_find,input_type:" #T                 \
-                                  ",first_adjacent_pair:"                                         \
-                                  + std::to_string(first_adjacent_pair) + ",cfg:default_config}") \
-            .c_str(),                                                                             \
-        run_adjacent_find_benchmark<T>,                                                           \
-        first_adjacent_pair,                                                                      \
-        bytes,                                                                                    \
-        seed,                                                                                     \
+#define CREATE_BENCHMARK(T, P)                                                         \
+    benchmark::RegisterBenchmark(                                                      \
+        bench_naming::format_name(                                                     \
+            "{lvl:device,algo:adjacent_find,input_type:" #T ",size:"                   \
+            + std::to_string(std::size_t{bytes / sizeof(T)}) + ",first_adjacent_pair:" \
+            + std::to_string(static_cast<std::size_t>(bytes / sizeof(T) * P))          \
+            + ",cfg:default_config}")                                                  \
+            .c_str(),                                                                  \
+        run_adjacent_find_benchmark<T>,                                                \
+        P,                                                                             \
+        bytes,                                                                         \
+        seed,                                                                          \
         stream)
 
+#define CREATE_ADJACENT_FIND_BENCHMARK(T)                                          \
+    CREATE_BENCHMARK(T, 0.01), CREATE_BENCHMARK(T, 0.2), CREATE_BENCHMARK(T, 0.5), \
+        CREATE_BENCHMARK(T, 0.9)
+
 void add_adjacent_find_benchmarks(std::vector<benchmark::internal::Benchmark*>& benchmarks,
-                                  double                                        first_adjacent_pair,
                                   size_t                                        bytes,
                                   const managed_seed&                           seed,
                                   hipStream_t                                   stream)
 {
-    // using custom_int2            = custom_type<int, int>;
-    // using custom_longlong_double = custom_type<long long, double>;
-    // using custom_float2  = custom_type<float, float>;
-    // using custom_double2 = custom_type<double, double>;
+    using custom_float2          = custom_type<float, float>;
+    using custom_double2         = custom_type<double, double>;
+    using custom_int2            = custom_type<int, int>;
+    using custom_char_double     = custom_type<char, double>;
+    using custom_longlong_double = custom_type<long long, double>;
 
+    // Tuned types
     std::vector<benchmark::internal::Benchmark*> bs
         = {// Tuned types
            CREATE_ADJACENT_FIND_BENCHMARK(int8_t),
            CREATE_ADJACENT_FIND_BENCHMARK(int16_t),
            CREATE_ADJACENT_FIND_BENCHMARK(int32_t),
            CREATE_ADJACENT_FIND_BENCHMARK(int64_t),
-           //    CREATE_ADJACENT_FIND_BENCHMARK(rocprim::half),
+           CREATE_ADJACENT_FIND_BENCHMARK(rocprim::half),
            CREATE_ADJACENT_FIND_BENCHMARK(float),
-           CREATE_ADJACENT_FIND_BENCHMARK(double)};
-
-    // Custom types
-    //    CREATE_ADJACENT_FIND_BENCHMARK(custom_int2),
-    //    CREATE_ADJACENT_FIND_BENCHMARK(custom_longlong_double)};
-
-    benchmarks.insert(benchmarks.end(), bs.begin(), bs.end());
+           CREATE_ADJACENT_FIND_BENCHMARK(double),
+           // Custom types
+           CREATE_ADJACENT_FIND_BENCHMARK(custom_float2),
+           CREATE_ADJACENT_FIND_BENCHMARK(custom_double2),
+           CREATE_ADJACENT_FIND_BENCHMARK(custom_int2),
+           CREATE_ADJACENT_FIND_BENCHMARK(custom_char_double),
+           CREATE_ADJACENT_FIND_BENCHMARK(custom_longlong_double)};
 }
 
 int main(int argc, char* argv[])
@@ -212,9 +223,7 @@ int main(int argc, char* argv[])
 
     // Add benchmarks
     std::vector<benchmark::internal::Benchmark*> benchmarks{};
-    add_adjacent_find_benchmarks(benchmarks, 0.1, size, seed, stream);
-    add_adjacent_find_benchmarks(benchmarks, 0.5, size, seed, stream);
-    add_adjacent_find_benchmarks(benchmarks, 0.9, size, seed, stream);
+    add_adjacent_find_benchmarks(benchmarks, size, seed, stream);
 
     // Use manual timing
     for(auto& b : benchmarks)
