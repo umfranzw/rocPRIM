@@ -23,7 +23,6 @@
 
 #include "detail/device_adjacent_find.hpp"
 #include "detail/device_config_helper.hpp"
-#include "detail/ordered_block_id.hpp"
 #include "device_adjacent_find_config.hpp"
 #include "device_reduce.hpp"
 #include "device_transform.hpp"
@@ -166,6 +165,17 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
         const unsigned int grid_size        = (size + items_per_block - 1) / items_per_block;
         const unsigned int shared_mem_bytes = 0; /*no dynamic shared mem*/
 
+        // Get grid size for maximum occupancy, as we may not be able to schedule all the blocks
+        // at the same time
+        int min_grid_size      = 0;
+        int optimal_block_size = 0;
+        RETURN_ON_ERROR(hipOccupancyMaxPotentialBlockSize(&min_grid_size,
+                                                          &optimal_block_size,
+                                                          adjacent_find_block_reduce_kernel,
+                                                          shared_mem_bytes,
+                                                          int(block_size)));
+        min_grid_size = std::min(static_cast<unsigned int>(min_grid_size), grid_size);
+
         // Launch adjacent_find::block_reduce_kernel
         std::chrono::time_point<std::chrono::high_resolution_clock> start;
         if(debug_synchronous)
@@ -174,7 +184,7 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
         }
 
         // Launch adjacent_find::block_reduce_kernel
-        adjacent_find_block_reduce_kernel<<<grid_size, block_size, shared_mem_bytes, stream>>>(
+        adjacent_find_block_reduce_kernel<<<min_grid_size, block_size, shared_mem_bytes, stream>>>(
             transformed_input,
             reduce_output,
             std::size_t{size - 1},

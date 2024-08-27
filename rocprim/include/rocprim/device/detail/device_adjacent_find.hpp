@@ -60,69 +60,73 @@ void block_reduce_kernel(TransformedInputIterator transformed_input,
         std::size_t global_reduce_output;
     } storage;
 
-    const unsigned int bid = blockIdx.x;
-    const unsigned int tid = threadIdx.x;
+    const unsigned int bid        = blockIdx.x;
+    const unsigned int tid        = threadIdx.x;
+    const unsigned int grid_items = ::rocprim::detail::grid_size<0>() * items_per_block;
 
-    const std::size_t  block_offset        = bid * items_per_block;
-    const unsigned int valid_in_last_block = size - block_offset;
+    const std::size_t block_offset = bid * items_per_block;
 
-    // First thread of each block loads the latest global adjacent index found
-    if(tid == 0)
+    for(std::size_t tile_offset = block_offset; tile_offset < size; tile_offset += grid_items)
     {
-        storage.global_reduce_output = atomic_load(reduce_output);
-    }
-    syncthreads();
 
-    // Early exit if a previous block found an adjacent pair
-    if(storage.global_reduce_output < block_offset)
-    {
-        return;
-    }
-
-    // Do block reduction
-    transformed_input_type transformed_input_values[items_per_thread];
-    transformed_input_type output_value;
-
-    if(bid == (size / block_size) - 1) /* Last incomplete block */
-    {
-        block_load_direct_striped<block_size>(tid,
-                                              transformed_input + block_offset,
-                                              transformed_input_values,
-                                              valid_in_last_block);
-
-        // Thread reductions with boundary check
-        output_value = transformed_input_values[0];
-        ROCPRIM_UNROLL
-        for(unsigned int i = 1; i < items_per_thread; i++)
+        // First thread of each block loads the latest global adjacent index found
+        if(tid == 0)
         {
-            unsigned int offset = i * block_size;
-            if(tid + offset < valid_in_last_block)
-            {
-                output_value = op(output_value, transformed_input_values[i]);
-            }
+            storage.global_reduce_output = atomic_load(reduce_output);
         }
-        // Reduce thread reductions
-        block_reduce_type().reduce(output_value, // input
-                                   output_value, // output
-                                   std::min(valid_in_last_block, block_size),
-                                   op);
-    }
-    else /* Complete blocks */
-    {
-        block_load_direct_striped<block_size>(tid,
-                                              transformed_input + block_offset,
-                                              transformed_input_values);
-        block_reduce_type().reduce(transformed_input_values, // input
-                                   output_value, // output
-                                   op);
-    }
+        syncthreads();
 
-    // Save reduction's index into output if an adjacent pair is found
-    if(tid == 0)
-    {
-        if(::rocprim::get<0>(output_value) != 0)
+        // Early exit if a previous block found an adjacent pair
+        if(storage.global_reduce_output < tile_offset)
         {
-            atomic_min(reduce_output, ::rocprim::get<1>(output_value));
+            return;
+        }
+
+        // Do block reduction
+        transformed_input_type transformed_input_values[items_per_thread];
+        transformed_input_type output_value;
+
+        if(tile_offset + items_per_block > size) /* Last incomplete processing */
+        {
+            const std::size_t valid_in_last_iteration = size - tile_offset;
+            block_load_direct_striped<block_size>(tid,
+                                                  transformed_input + tile_offset,
+                                                  transformed_input_values,
+                                                  valid_in_last_iteration);
+
+            // Thread reductions with boundary check
+            output_value = transformed_input_values[0];
+            ROCPRIM_UNROLL
+            for(unsigned int i = 1; i < items_per_thread; i++)
+            {
+                if(tid + i * block_size < valid_in_last_iteration)
+                {
+                    output_value = op(output_value, transformed_input_values[i]);
+                }
+            }
+            // Reduce thread reductions
+            block_reduce_type().reduce(output_value, // input
+                                       output_value, // output
+                                       std::min(valid_in_last_iteration, std::size_t{block_size}),
+                                       op);
+        }
+        else /* Complete processings */
+        {
+            block_load_direct_striped<block_size>(tid,
+                                                  transformed_input + tile_offset,
+                                                  transformed_input_values);
+            block_reduce_type().reduce(transformed_input_values, // input
+                                       output_value, // output
+                                       op);
+        }
+
+        // Save reduction's index into output if an adjacent pair is found
+        if(tid == 0)
+        {
+            if(::rocprim::get<0>(output_value) != 0)
+            {
+                atomic_min(reduce_output, ::rocprim::get<1>(output_value));
+            }
         }
     }
 }
