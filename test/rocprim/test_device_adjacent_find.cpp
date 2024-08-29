@@ -92,33 +92,38 @@ struct adjacent_find_impl<rocprim::half>
 
 // Params for tests
 template<class InputType,
-         class OutputType         = std::size_t,
-         class OpType             = rocprim::equal_to<InputType>,
-         bool UseIdentityIterator = false,
-         class Config             = rocprim::default_config,
-         bool UseGraphs           = false>
+         class OutputType = std::size_t,
+         class OpType     = rocprim::equal_to<InputType>,
+         class Config     = rocprim::default_config,
+         bool UseGraphs   = false>
 struct DeviceAdjacentFindParams
 {
-    using input_type                            = InputType;
-    using output_type                           = OutputType;
-    using op_type                               = OpType;
-    static constexpr bool use_identity_iterator = UseIdentityIterator;
-    using config                                = Config;
-    static constexpr bool use_graphs            = UseGraphs;
+    using input_type                 = InputType;
+    using output_type                = OutputType;
+    using op_type                    = OpType;
+    using config                     = Config;
+    static constexpr bool use_graphs = UseGraphs;
 };
 
 template<class Params>
 class RocprimDeviceAdjacentFindTests : public ::testing::Test
 {
 public:
-    using input_type                            = typename Params::input_type;
-    using output_type                           = typename Params::output_type;
-    using op_type                               = typename Params::op_type;
-    static constexpr bool use_identity_iterator = Params::use_identity_iterator;
-    static constexpr bool debug_synchronous     = false;
-    using config                                = typename Params::config;
-    static constexpr bool use_graphs            = Params::use_graphs;
+    using input_type                        = typename Params::input_type;
+    using output_type                       = typename Params::output_type;
+    using op_type                           = typename Params::op_type;
+    using config                            = typename Params::config;
+    static constexpr bool use_graphs        = Params::use_graphs;
+    static constexpr bool debug_synchronous = false;
 };
+
+// Custom types
+using custom_int2        = test_utils::custom_test_type<int>;
+using custom_double2     = test_utils::custom_test_type<double>;
+using custom_int64_array = test_utils::custom_test_array_type<std::int64_t, 4>;
+
+// Custom configs
+using custom_config_0 = rocprim::adjacent_find_config<128, 4>;
 
 using RocprimDeviceAdjacentFindTestsParams = ::testing::Types<
     // Tests with default configuration
@@ -128,22 +133,19 @@ using RocprimDeviceAdjacentFindTestsParams = ::testing::Types<
     DeviceAdjacentFindParams<rocprim::bfloat16>,
     DeviceAdjacentFindParams<float>,
     DeviceAdjacentFindParams<double>,
-    // Test for custom types
-    DeviceAdjacentFindParams<test_utils::custom_test_type<int>>,
-    // Tests for void value_type
-    DeviceAdjacentFindParams<int, std::size_t, rocprim::equal_to<int>, true>,
-    DeviceAdjacentFindParams<float, std::size_t, rocprim::equal_to<float>, true>,
-    // DeviceAdjacentFindParams<custom_int64_array, std::size_t, true>,
+    // Tests for custom types
+    DeviceAdjacentFindParams<custom_int2>,
+    DeviceAdjacentFindParams<custom_double2>,
+    DeviceAdjacentFindParams<custom_int64_array>,
     // Tests for supported config structs
-    // DeviceAdjacentFindParams<rocprim::bfloat16, std::size_t, false, custom_config_0>,
-    // Tests for different size_limits
-    // DeviceAdjacentFindParams<int, int, false, custom_size_limit_config<64>>,
-    // DeviceAdjacentFindParams<int, int, false, custom_size_limit_config<8192>, false, true>,
-    // DeviceAdjacentFindParams<int, int, false, custom_size_limit_config<10240>, false, true>,
-    DeviceAdjacentFindParams<int,
+    DeviceAdjacentFindParams<rocprim::bfloat16,
                              std::size_t,
-                             rocprim::equal_to<int>,
-                             false,
+                             rocprim::equal_to<rocprim::bfloat16>,
+                             custom_config_0>,
+    // Tests for hipGraph support
+    DeviceAdjacentFindParams<unsigned int,
+                             std::size_t,
+                             rocprim::equal_to<unsigned int>,
                              rocprim::default_config,
                              true>>;
 
@@ -220,18 +222,18 @@ TYPED_TEST(RocprimDeviceAdjacentFindTests, AdjacentFind)
                                 hipMemcpyHostToDevice));
 
             // Allocate temporary storage
-            std::size_t temp_storage_size;
-            void*       d_temp_storage = nullptr;
-            HIP_CHECK(::rocprim::adjacent_find<Config>(d_temp_storage,
-                                                       temp_storage_size,
+            std::size_t tmp_storage_size;
+            void*       d_tmp_storage = nullptr;
+            HIP_CHECK(::rocprim::adjacent_find<Config>(d_tmp_storage,
+                                                       tmp_storage_size,
                                                        d_input,
                                                        d_output,
                                                        size,
                                                        op_type{},
                                                        stream,
                                                        debug_synchronous));
-            ASSERT_GT(temp_storage_size, 0);
-            HIP_CHECK(test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size));
+            ASSERT_GT(tmp_storage_size, 0);
+            HIP_CHECK(test_common_utils::hipMallocHelper(&d_tmp_storage, tmp_storage_size));
 
             hipGraph_t graph;
             if(TestFixture::use_graphs)
@@ -240,8 +242,8 @@ TYPED_TEST(RocprimDeviceAdjacentFindTests, AdjacentFind)
             }
 
             // Run
-            HIP_CHECK(::rocprim::adjacent_find<Config>(d_temp_storage,
-                                                       temp_storage_size,
+            HIP_CHECK(::rocprim::adjacent_find<Config>(d_tmp_storage,
+                                                       tmp_storage_size,
                                                        d_input,
                                                        d_output,
                                                        size,
@@ -271,7 +273,7 @@ TYPED_TEST(RocprimDeviceAdjacentFindTests, AdjacentFind)
             // Cleanup
             hipFree(d_input);
             hipFree(d_output);
-            hipFree(d_temp_storage);
+            hipFree(d_tmp_storage);
 
             if(TestFixture::use_graphs)
             {
