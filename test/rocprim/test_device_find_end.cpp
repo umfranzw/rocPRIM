@@ -259,9 +259,12 @@ TYPED_TEST(RocprimDeviceFindEndTests, FindEnd)
                 // Copy output to host
                 HIP_CHECK(hipMemcpy(&output, d_output, sizeof(*d_output), hipMemcpyDeviceToHost));
 
-                index_type expected
-                    = std::find_end(input.begin(), input.end(), keys.begin(), keys.end())
-                      - input.begin();
+                index_type expected = std::find_end(input.begin(),
+                                                    input.end(),
+                                                    keys.begin(),
+                                                    keys.end(),
+                                                    compare_op)
+                                      - input.begin();
 
                 ASSERT_EQ(output, expected);
 

@@ -111,13 +111,13 @@ void search_kernel(InputIterator1 input,
         OutputType current_id = id;
         for(; i < keys_size - 1 && current_id < size; i++, current_id++)
         {
-            if(!compare_function(keys[i], input[current_id]))
+            if(!compare_function(input[current_id], keys[i]))
             {
                 break;
             }
         }
         if(current_id < size && i == (keys_size - 1)
-           && compare_function(keys[i], input[current_id]))
+           && compare_function(input[current_id], keys[i]))
         {
             index        = id;
             find_pattern = true;
@@ -237,23 +237,23 @@ void search_kernel_shared(InputIterator1 input,
         OutputType current_id = id;
         for(; i < keys_size - 1 && current_id < check_both; i++, current_id++)
         {
-            if(!compare_function(local_keys[i], local_input[current_id]))
+            if(!compare_function(local_input[current_id], local_keys[i]))
             {
                 break;
             }
         }
         for(; i < keys_size - 1 && current_id < check; i++, current_id++)
         {
-            if(!compare_function(local_keys[i], input[current_id + block_offset]))
+            if(!compare_function(input[current_id + block_offset], local_keys[i]))
             {
                 break;
             }
         }
 
         if(current_id + block_offset < size && i == (keys_size - 1)
-           && compare_function(local_keys[i],
-                               current_id < items_per_block ? local_input[current_id]
-                                                            : input[current_id + block_offset]))
+           && compare_function(current_id < items_per_block ? local_input[current_id]
+                                                            : input[current_id + block_offset],
+                               local_keys[i]))
         {
             index        = id + block_offset;
             find_pattern = true;
