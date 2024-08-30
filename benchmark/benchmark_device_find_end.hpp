@@ -93,7 +93,7 @@ struct device_find_end_benchmark : public config_autotune_interface
             input = get_random_data<key_type>(size,
                                               generate_limits<key_type>::min(),
                                               generate_limits<key_type>::max(),
-                                              seed.get_0());
+                                              seed.get_0() + 1);
         }
 
         key_type*    d_keys_input;

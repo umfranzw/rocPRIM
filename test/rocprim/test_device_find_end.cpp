@@ -78,7 +78,7 @@ using RocprimDeviceFindEndTestsParams = ::testing::Types<
     DeviceFindEndParams<float>,
     DeviceFindEndParams<int8_t>,
     DeviceFindEndParams<uint8_t>,
-    // DeviceFindEndParams<rocprim::half, rocprim::half, size_t, rocprim::equal_to<rocprim::half>>, // Does not work with std::find_end
+    DeviceFindEndParams<rocprim::half, rocprim::half, size_t, rocprim::equal_to<rocprim::half>>,
     DeviceFindEndParams<rocprim::bfloat16,
                         rocprim::bfloat16,
                         size_t,
@@ -89,6 +89,8 @@ using RocprimDeviceFindEndTestsParams = ::testing::Types<
     DeviceFindEndParams<test_utils::custom_float_type>,
     DeviceFindEndParams<test_utils::custom_test_array_type<int, 4>>,
     DeviceFindEndParams<int, int, size_t, rocprim::equal_to<int>, rocprim::default_config, true>,
+    DeviceFindEndParams<int, int, size_t, rocprim::greater_equal<int>, rocprim::default_config>,
+    DeviceFindEndParams<int, int, size_t, rocprim::greater<int>, rocprim::default_config>,
     DeviceFindEndParams<int,
                         int,
                         size_t,
