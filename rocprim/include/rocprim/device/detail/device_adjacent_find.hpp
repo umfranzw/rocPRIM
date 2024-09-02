@@ -34,30 +34,30 @@ namespace detail
 {
 namespace adjacent_find
 {
+template<class T>
 ROCPRIM_KERNEL __launch_bounds__(1)
-void init_ordered_bid(ordered_block_id<unsigned int> ordered_bid)
+void init_ordered_tile_id(ordered_block_id<T> ordered_tile_id)
 {
     // Reset ordered_block_id.
-    ordered_bid.reset();
+    ordered_tile_id.reset();
 }
 
-// Block reduction secuential
 template<typename Config,
          typename TransformedInputIterator,
          typename ReduceIndexIterator,
-         typename BinaryPred>
+         typename BinaryPred,
+         typename OrderedTileIdType>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void block_reduce_kernel(TransformedInputIterator       transformed_input,
-                         ReduceIndexIterator            reduce_output,
-                         const std::size_t              size,
-                         BinaryPred                     op,
-                         ordered_block_id<unsigned int> ordered_tile_id,
-                         int*                           blocks_done_count)
+void block_reduce_kernel(TransformedInputIterator transformed_input,
+                         ReduceIndexIterator      reduce_output,
+                         const std::size_t        size,
+                         BinaryPred               op,
+                         OrderedTileIdType        ordered_tile_id)
 {
     static constexpr adjacent_find_config_params params     = device_params<Config>();
     static constexpr unsigned int                block_size = params.kernel_config.block_size;
     static constexpr unsigned int items_per_thread          = params.kernel_config.items_per_thread;
-    static constexpr unsigned int items_per_block           = block_size * items_per_thread;
+    static constexpr unsigned int items_per_tile            = block_size * items_per_thread;
 
     using transformed_input_type =
         typename std::iterator_traits<TransformedInputIterator>::value_type;
@@ -68,42 +68,24 @@ void block_reduce_kernel(TransformedInputIterator       transformed_input,
 
     ROCPRIM_SHARED_MEMORY union
     {
-        typename decltype(ordered_tile_id)::storage_type block_id;
+        typename decltype(ordered_tile_id)::storage_type tile_id;
         std::size_t                                      global_reduce_output;
     } storage;
 
-    const unsigned int bid        = ordered_tile_id.get(threadIdx.x, storage.block_id);
-    const unsigned int tid        = threadIdx.x;
-    const unsigned int grid_items = ::rocprim::detail::grid_size<0>() * items_per_block;
+    // Get initial tile id
+    const unsigned int thread_id = threadIdx.x;
+    std::size_t tile_offset = ordered_tile_id.get(threadIdx.x, storage.tile_id) * items_per_tile;
 
-    const std::size_t block_offset = bid * items_per_block;
-
-    for(std::size_t tile_offset = block_offset; tile_offset < size; tile_offset += grid_items)
+    while(tile_offset < size)
     {
-
         // First thread of each block loads the latest global adjacent index found
-        // For the first block always load, while for the rest we need to wait until
-        // the previous block has written.
-        if(bid == 0 && tid == 0)
+        if(thread_id == 0)
         {
             storage.global_reduce_output = atomic_load(reduce_output);
-        }
-        else if(bid > 0 && tid == 0)
-        {
-            while(*blocks_done_count <= bid - 1)
-            {
-            }
-            storage.global_reduce_output = atomic_load(reduce_output);
-            // If a previous block or tile processing found an adjacent pair, signal that we are done,
-            // as the threads will exit execution
-            if(storage.global_reduce_output < tile_offset)
-            {
-                atomic_add(blocks_done_count, 1);
-            }
         }
         syncthreads();
 
-        // Early exit if a previous block found an adjacent pair
+        // Early exit if a previous block or tile found an adjacent pair
         if(storage.global_reduce_output < tile_offset)
         {
             return;
@@ -113,10 +95,10 @@ void block_reduce_kernel(TransformedInputIterator       transformed_input,
         transformed_input_type transformed_input_values[items_per_thread];
         transformed_input_type output_value;
 
-        if(tile_offset + items_per_block > size) /* Last incomplete processing */
+        if(tile_offset + items_per_tile > size) /* Last incomplete processing */
         {
             const std::size_t valid_in_last_iteration = size - tile_offset;
-            block_load_direct_striped<block_size>(tid,
+            block_load_direct_striped<block_size>(thread_id,
                                                   transformed_input + tile_offset,
                                                   transformed_input_values,
                                                   valid_in_last_iteration);
@@ -126,7 +108,7 @@ void block_reduce_kernel(TransformedInputIterator       transformed_input,
             ROCPRIM_UNROLL
             for(unsigned int i = 1; i < items_per_thread; i++)
             {
-                if(tid + i * block_size < valid_in_last_iteration)
+                if(thread_id + i * block_size < valid_in_last_iteration)
                 {
                     output_value = op(output_value, transformed_input_values[i]);
                 }
@@ -139,7 +121,7 @@ void block_reduce_kernel(TransformedInputIterator       transformed_input,
         }
         else /* Complete processings */
         {
-            block_load_direct_striped<block_size>(tid,
+            block_load_direct_striped<block_size>(thread_id,
                                                   transformed_input + tile_offset,
                                                   transformed_input_values);
             block_reduce_type().reduce(transformed_input_values, // input
@@ -148,16 +130,17 @@ void block_reduce_kernel(TransformedInputIterator       transformed_input,
         }
 
         // Save reduction's index into output if an adjacent pair is found
-        if(tid == 0)
+        if(thread_id == 0)
         {
             if(::rocprim::get<0>(output_value) != 0)
             {
+                // Store global minimum
                 atomic_min(reduce_output, ::rocprim::get<1>(output_value));
-                // Ensure that the reduce_output update is done before the blocks_done_count update
-                ::rocprim::detail::memory_fence_device();
             }
-            atomic_add(blocks_done_count, 1);
         }
+
+        // Get next tile's id
+        tile_offset = ordered_tile_id.get(threadIdx.x, storage.tile_id) * items_per_tile;
     }
 }
 } // namespace adjacent_find
