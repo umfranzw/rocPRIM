@@ -141,7 +141,6 @@ void search_kernel(InputIterator1 input,
 }
 
 template<class Config,
-         unsigned int SharedMemSize,
          class InputIterator1,
          class InputIterator2,
          class OutputType,
@@ -163,6 +162,7 @@ void search_kernel_shared(InputIterator1 input,
     constexpr unsigned int block_size       = params.kernel_config.block_size;
     constexpr unsigned int items_per_thread = params.kernel_config.items_per_thread;
     constexpr unsigned int items_per_block  = block_size * items_per_thread;
+    constexpr unsigned int max_shared_key   = params.max_shared_key_bytes / sizeof(key_type);
 
     const unsigned int flat_id       = rocprim::detail::block_thread_id<0>();
     const unsigned int flat_block_id = rocprim::detail::block_id<0>();
@@ -171,7 +171,7 @@ void search_kernel_shared(InputIterator1 input,
     const OutputType offset       = flat_id * items_per_thread;
     bool find_pattern = false;
 
-    ROCPRIM_SHARED_MEMORY uninitialized_array<key_type, SharedMemSize> local_keys_;
+    ROCPRIM_SHARED_MEMORY uninitialized_array<key_type, max_shared_key> local_keys_;
     ROCPRIM_SHARED_MEMORY uninitialized_array<value_type, items_per_block> local_input_;
 
     if(block_offset > atomic_load(output))
@@ -310,8 +310,9 @@ hipError_t find_end_impl(void*          temporary_storage,
                          hipStream_t    stream,
                          bool           debug_synchronous)
 {
-    using output_type = typename std::iterator_traits<OutputIterator>::value_type;
     using input_type  = typename std::iterator_traits<InputIterator1>::value_type;
+    using key_type    = typename std::iterator_traits<InputIterator2>::value_type;
+    using output_type = typename std::iterator_traits<OutputIterator>::value_type;
 
     static_assert(rocprim::is_integral<output_type>::value
                       && rocprim::is_unsigned<output_type>::value,
@@ -328,7 +329,8 @@ hipError_t find_end_impl(void*          temporary_storage,
     const unsigned int items_per_thread = params.kernel_config.items_per_thread;
     const unsigned int items_per_block  = block_size * items_per_thread;
 
-    constexpr unsigned int shared_mem_size = 256;
+    const unsigned int shared_key_mem_size_bytes = params.max_shared_key_bytes;
+    const unsigned int key_size_bytes            = keys_size * sizeof(key_type);
 
     // Start point for time measurements
     std::chrono::steady_clock::time_point start;
@@ -364,16 +366,15 @@ hipError_t find_end_impl(void*          temporary_storage,
     if(size > 0 && keys_size > 0)
     {
         const unsigned int num_blocks = ceiling_div(size, items_per_block);
-        if(keys_size < shared_mem_size)
+        if(key_size_bytes < shared_key_mem_size_bytes)
         {
             start_timer();
-            search_kernel_shared<config, shared_mem_size>
-                <<<num_blocks, block_size, 0, stream>>>(input_iterator,
-                                                        keys_iterator,
-                                                        tmp_output,
-                                                        size,
-                                                        keys_size,
-                                                        compare_function);
+            search_kernel_shared<config><<<num_blocks, block_size, 0, stream>>>(input_iterator,
+                                                                                keys_iterator,
+                                                                                tmp_output,
+                                                                                size,
+                                                                                keys_size,
+                                                                                compare_function);
             ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_kernel_shared", size, start);
         }
         else

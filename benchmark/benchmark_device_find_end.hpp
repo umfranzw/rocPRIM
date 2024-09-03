@@ -83,10 +83,13 @@ struct device_find_end_benchmark : public config_autotune_interface
         std::vector<key_type> input(size);
         if(repeating_)
         {
+            // Repeating similair pattern without early exits.
+            keys_input[0] = 0;
             for(size_t i = 0; i < size; i++)
             {
                 input[i] = keys_input[i % key_size];
             }
+            keys_input[0] = 1;
         }
         else
         {

@@ -1167,6 +1167,7 @@ namespace detail
 
 struct search_config_params
 {
+    unsigned int         max_shared_key_bytes;
     kernel_config_params kernel_config;
 };
 
@@ -1176,13 +1177,14 @@ struct search_config_params
 ///
 /// \tparam BlockSize number of threads in a block.
 /// \tparam ItemsPerThread number of items processed by each thread.
+/// \tparam MaxSharedKeyBytes maximum number of bytes for which a shared key is used.
 template<unsigned int BlockSize, unsigned int ItemsPerThread, unsigned int MaxSharedKeyBytes>
-struct search_config : public detail::search_config_params
+struct find_end_config : public detail::find_end_config_params
 {
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
     constexpr find_end_config()
         : detail::find_end_config_params{
-            {BlockSize, ItemsPerThread, ROCPRIM_GRID_SIZE_LIMIT}
+            MaxSharedKeyBytes, {BlockSize, ItemsPerThread, ROCPRIM_GRID_SIZE_LIMIT}
     }
     {}
 #endif
