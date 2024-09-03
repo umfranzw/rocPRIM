@@ -242,7 +242,8 @@ void search_kernel_shared(InputIterator1 input,
                 break;
             }
         }
-        for(; i < keys_size - 1 && current_id < check; i++, current_id++)
+        for(; current_id >= items_per_block && i < keys_size - 1 && current_id < check;
+            i++, current_id++)
         {
             if(!compare_function(input[current_id + block_offset], local_keys[i]))
             {
