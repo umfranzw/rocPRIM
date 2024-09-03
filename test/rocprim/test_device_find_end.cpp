@@ -72,6 +72,7 @@ using RocprimDeviceFindEndTestsParams = ::testing::Types<
     DeviceFindEndParams<unsigned short>,
     DeviceFindEndParams<signed char>,
     DeviceFindEndParams<int, int, unsigned int>,
+    DeviceFindEndParams<int, int, int>,
     DeviceFindEndParams<test_utils::custom_test_type<int>>,
     DeviceFindEndParams<unsigned long>,
     DeviceFindEndParams<long long>,
@@ -122,7 +123,7 @@ TYPED_TEST(RocprimDeviceFindEndTests, FindEnd)
     const bool     debug_synchronous     = TestFixture::debug_synchronous;
     constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
 
-    std::vector<size_t> key_sizes = {0, 1, 10, 1000};
+    std::vector<size_t> key_sizes = {0, 1, 10, 1000, 10000};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

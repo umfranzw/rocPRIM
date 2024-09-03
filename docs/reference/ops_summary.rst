@@ -55,6 +55,7 @@ Sequence Search
 
 * ``find_first_of`` searches for the first occurrence of any of the provided elements.
 * ``adjacent_find`` searches a given sequence for the first occurence of two consecutive equal elements.
+* ``find_end`` searches for the last occurrence of the sequence.
 
 Other operations
 ======================

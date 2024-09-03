@@ -73,16 +73,12 @@ namespace detail
     }                                     \
     while(0)
 
-template<class Config,
-         class InputIterator1,
-         class InputIterator2,
-         class OutputType,
-         class BinaryFunction>
+template<class Config, class InputIterator1, class InputIterator2, class BinaryFunction>
 ROCPRIM_KERNEL
 __launch_bounds__(device_params<Config>().kernel_config.block_size)
 void search_kernel(InputIterator1 input,
                    InputIterator2 keys,
-                   OutputType*    output,
+                   size_t*        output,
                    size_t         size,
                    size_t         keys_size,
                    BinaryFunction compare_function)
@@ -96,19 +92,20 @@ void search_kernel(InputIterator1 input,
     const unsigned int flat_id       = rocprim::detail::block_thread_id<0>();
     const unsigned int flat_block_id = rocprim::detail::block_id<0>();
 
-    const OutputType offset       = flat_id * items_per_thread + flat_block_id * items_per_block;
-    bool             find_pattern = false;
+    const size_t offset       = flat_id * items_per_thread + flat_block_id * items_per_block;
+    bool         find_pattern = false;
 
+    // Check if it can have fit a key and a key has not yet be found with a lower index.
     if(offset + keys_size > size || offset > atomic_load(output))
     {
         return;
     }
 
-    OutputType index = 0;
-    for(OutputType id = offset; id < offset + items_per_thread; id++)
+    size_t index = 0;
+    for(size_t id = offset; id < offset + items_per_thread; id++)
     {
-        OutputType i          = 0;
-        OutputType current_id = id;
+        size_t i          = 0;
+        size_t current_id = id;
         for(; i < keys_size - 1 && current_id < size; i++, current_id++)
         {
             if(!compare_function(input[current_id], keys[i]))
@@ -116,6 +113,9 @@ void search_kernel(InputIterator1 input,
                 break;
             }
         }
+
+        // If the i is the last value for the key and the compare is also true,
+        // the pattern is found.
         if(current_id < size && i == (keys_size - 1)
            && compare_function(input[current_id], keys[i]))
         {
@@ -140,16 +140,12 @@ void search_kernel(InputIterator1 input,
     }
 }
 
-template<class Config,
-         class InputIterator1,
-         class InputIterator2,
-         class OutputType,
-         class BinaryFunction>
+template<class Config, class InputIterator1, class InputIterator2, class BinaryFunction>
 ROCPRIM_KERNEL
 __launch_bounds__(device_params<Config>().kernel_config.block_size)
 void search_kernel_shared(InputIterator1 input,
                           InputIterator2 keys,
-                          OutputType*    output,
+                          size_t*        output,
                           size_t         size,
                           size_t         keys_size,
                           BinaryFunction compare_function)
@@ -167,18 +163,20 @@ void search_kernel_shared(InputIterator1 input,
     const unsigned int flat_id       = rocprim::detail::block_thread_id<0>();
     const unsigned int flat_block_id = rocprim::detail::block_id<0>();
 
-    const OutputType block_offset = flat_block_id * items_per_block;
-    const OutputType offset       = flat_id * items_per_thread;
+    const size_t block_offset = flat_block_id * items_per_block;
+    const size_t offset       = flat_id * items_per_thread;
     bool find_pattern = false;
 
     ROCPRIM_SHARED_MEMORY uninitialized_array<key_type, max_shared_key> local_keys_;
     ROCPRIM_SHARED_MEMORY uninitialized_array<value_type, items_per_block> local_input_;
 
+    // Check if a key was already found in a place before this block
     if(block_offset > atomic_load(output))
     {
         return;
     }
 
+    // Load in key in shared memory
     const size_t batch_size = ceiling_div(keys_size, block_size);
     for(size_t i = 0; i < batch_size; i++)
     {
@@ -195,6 +193,7 @@ void search_kernel_shared(InputIterator1 input,
 
     const bool is_complete_block = block_offset + items_per_block <= size;
 
+    // Load in all the input values that are guaranteed to be loaded.
     if(is_complete_block)
     {
         block_load_input().load(input + block_offset, elements);
@@ -223,18 +222,20 @@ void search_kernel_shared(InputIterator1 input,
 
     syncthreads();
 
+    // Check if it can have fit a key and a key has not yet be found with a lower index.
     if(offset + block_offset + keys_size > size || offset > atomic_load(output))
     {
         return;
     }
 
-    OutputType       index      = 0;
-    const OutputType check      = size - block_offset;
-    const OutputType check_both = rocprim::min(check, OutputType(items_per_block));
-    for(OutputType id = offset; id < offset + items_per_thread; id++)
+    size_t       index      = 0;
+    const size_t check      = size - block_offset;
+    const size_t check_both = rocprim::min(check, size_t(items_per_block));
+    for(size_t id = offset; id < offset + items_per_thread; id++)
     {
-        OutputType i          = 0;
-        OutputType current_id = id;
+        size_t i          = 0;
+        size_t current_id = id;
+        // Values till the items_per_block are in shared_memory
         for(; i < keys_size - 1 && current_id < check_both; i++, current_id++)
         {
             if(!compare_function(local_input[current_id], local_keys[i]))
@@ -242,6 +243,7 @@ void search_kernel_shared(InputIterator1 input,
                 break;
             }
         }
+        // Compare values that are not in the shared memory
         for(; current_id >= items_per_block && i < keys_size - 1 && current_id < check;
             i++, current_id++)
         {
@@ -251,6 +253,8 @@ void search_kernel_shared(InputIterator1 input,
             }
         }
 
+        // If the i is the last value for the key and the compare is also true,
+        // the pattern is found.
         if(current_id + block_offset < size && i == (keys_size - 1)
            && compare_function(current_id < items_per_block ? local_input[current_id]
                                                             : input[current_id + block_offset],
@@ -258,6 +262,7 @@ void search_kernel_shared(InputIterator1 input,
         {
             index        = id + block_offset;
             find_pattern = true;
+            // Want to find the first occurance, do not need to search further.
             break;
         }
     }
@@ -277,20 +282,19 @@ void search_kernel_shared(InputIterator1 input,
     }
 }
 
-template<class OutputType>
 ROCPRIM_KERNEL
-void set_output_kernel(OutputType* output, size_t size)
+void set_output_kernel(size_t* output, size_t value)
 {
-    *output = static_cast<OutputType>(size);
+    *output = static_cast<size_t>(value);
 }
 
-template<class OutputType>
 ROCPRIM_KERNEL
-void reverse_index_kernel(OutputType* output, size_t size, size_t keys_size)
+void reverse_index_kernel(size_t* output, size_t size, size_t keys_size)
 {
+    // Return the reverse index as long as the index is lower than the size.
     if(*output < size)
     {
-        *output = static_cast<OutputType>(size - keys_size) - *output;
+        *output = static_cast<size_t>(size - keys_size) - *output;
     }
 }
 
@@ -314,10 +318,6 @@ hipError_t find_end_impl(void*          temporary_storage,
     using input_type  = typename std::iterator_traits<InputIterator1>::value_type;
     using key_type    = typename std::iterator_traits<InputIterator2>::value_type;
     using output_type = typename std::iterator_traits<OutputIterator>::value_type;
-
-    static_assert(rocprim::is_integral<output_type>::value
-                      && rocprim::is_unsigned<output_type>::value,
-                  "Output type should be an unsigned integral type");
 
     using config = wrapped_find_end_config<Config, input_type>;
 
@@ -346,7 +346,7 @@ hipError_t find_end_impl(void*          temporary_storage,
 
     if(temporary_storage == nullptr)
     {
-        storage_size = sizeof(output_type);
+        storage_size = sizeof(size_t);
         return hipSuccess;
     }
 
@@ -355,10 +355,11 @@ hipError_t find_end_impl(void*          temporary_storage,
         return hipErrorInvalidValue;
     }
 
+    // The search kernel gives the first occurance, find_end wants the last.
     auto input_iterator = make_reverse_iterator(input + size);
     auto keys_iterator  = make_reverse_iterator(keys + keys_size);
 
-    output_type* tmp_output = reinterpret_cast<output_type*>(temporary_storage);
+    size_t* tmp_output = reinterpret_cast<size_t*>(temporary_storage);
 
     start_timer();
     set_output_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
@@ -413,6 +414,88 @@ hipError_t find_end_impl(void*          temporary_storage,
 /// \addtogroup devicemodule
 /// @{
 
+/// \brief Searches for the last occurrence of the sequence.
+///
+/// Searches the input for the last sequence where the the comparison
+///   function returns true with the key sequence. Then outputs the index
+///   of the start of the last sequence or if the sequence is not in the
+///   input it returns the size.
+///
+/// \par Overview
+/// * The contents of the inputs are not altered by the function.
+/// * Returns the required size of `temporary_storage` in `storage_size`
+/// if `temporary_storage` is a null pointer.
+/// * Accepts custom compare_functions for find_end across the device.
+/// * Streams in graph capture mode are supported
+///
+/// \tparam Config [optional] configuration of the primitive. It has to be `find_end_config`.
+/// \tparam InputIterator1 [inferred] random-access iterator type of the input range. Must meet the
+///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
+/// \tparam InputIterator2 [inferred] random-access iterator type of the input range. Must meet the
+///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
+/// \tparam OutputIterator [inferred] random-access iterator type of the input range. Must meet the
+///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
+/// \tparam CompareFunction [inferred] Type of binary function that accepts a argument of the
+///   type `InputIterator1` and of the type `InputIterator1` returns a value convertible to bool.
+///   Default type is `rocprim::less<>.`
+///
+/// \param [in] temporary_storage pointer to a device-accessible temporary storage. When
+///   a null pointer is passed, the required allocation size (in bytes) is written to
+/// `storage_size` and function returns without performing the find_end.
+/// \param [in,out] storage_size reference to a size (in bytes) of `temporary_storage`.
+/// \param [in] input iterator to the input range.
+/// \param [in] keys iterator to the key range.
+/// \param [out] output iterator to the output range. The output is one element.
+/// \param [in] size number of element in the input range.
+/// \param [in] key_size number of element in the key range.
+/// \param [in] compare_function binary operation function object that will be used for comparison.
+///   The signature of the function should be equivalent to the following:
+///   <tt>bool f(const T &a, const T &b);</tt>. The signature does not need to have
+///   <tt>const &</tt>, but function object must not modify the objects passed to it.
+///   The comparator must meet the C++ named requirement Compare.
+///   The default value is `BinaryFunction()`.
+/// \param [in] stream [optional] HIP stream object. Default is `0` (default stream).
+/// \param [in] debug_synchronous [optional] If true, synchronization after every kernel
+///   launch is forced in order to check for errors. Default value is `false`.
+///
+/// \returns `hipSuccess` (`0`) after successful rearrangement; otherwise a HIP runtime error of
+///   type `hipError_t`.
+///
+/// \par Example
+/// \parblock
+/// In this example a device-level find_end is performed where input values are
+///   represented by an array of unsigned integers and the key is also an array
+///   of unsigned integers.
+///
+/// \code{.cpp}
+/// #include <rocprim/rocprim.hpp>
+///
+/// // Prepare input and output (declare pointers, allocate device memory etc.)
+/// size_t size;           // e.g., 10
+/// size_t key_size;       // e.g., 3
+/// unsigned int * input;  // e.g., [ 6, 3, 5, 4, 1, 8, 2, 5, 4, 1 ]
+/// unsigned int * key;    // e.g., [ 5, 4, 1 ]
+/// unsigned int * output; // e.g., empty array of size 1
+///
+/// size_t temporary_storage_size_bytes;
+/// void * temporary_storage_ptr = nullptr;
+/// // Get required size of the temporary storage
+/// rocprim::find_end(
+///     temporary_storage_ptr, temporary_storage_size_bytes,
+///     input, key, output, size, key_size
+/// );
+///
+/// // allocate temporary storage
+/// hipMalloc(&temporary_storage_ptr, temporary_storage_size_bytes);
+///
+/// // perform find_end
+/// rocprim::find_end(
+///     temporary_storage_ptr, temporary_storage_size_bytes,
+///     input, key, output, size, key_size
+/// );
+/// // output:   [ 7 ]
+/// \endcode
+/// \endparblock
 template<class Config = default_config,
          class InputIterator1,
          class InputIterator2,

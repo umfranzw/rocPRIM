@@ -18,6 +18,7 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 * Added configuration autotuning to device adjacent find (`rocprim::adjacent_find`) for improved performance on selected architectures.
 * Added rocprim::numeric_limits which is an extension of `std::numeric_limits`, which includes support for 128-bit integers.
 * Added rocprim::int128_t and rocprim::uint128_t which are the __int128_t and __uint128_t types.
+* Added a parallel `find_end` device function similar to `std::find_end`, this function searches for the last occurrence of the sequence.
 
 ### Changed
 

@@ -26,4 +26,8 @@
    * :ref:`dev-memcpy`
    * :ref:`dev-nth_element`
    * :ref:`dev-partial_sort`
+<<<<<<< HEAD
    * :ref:`dev-find_first_of`
+=======
+   * :ref:`dev-find_end`
+>>>>>>> Documentation for find_end
