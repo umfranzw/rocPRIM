@@ -37,35 +37,37 @@
 
 BEGIN_ROCPRIM_NAMESPACE
 
+#ifndef DOXYGEN_DOCUMENTATION_BUILD // Do not document
+
 namespace detail
 {
-#define ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(name, size, start)                           \
-    {                                                                                            \
-        auto _error = hipGetLastError();                                                         \
-        if(_error != hipSuccess)                                                                 \
-            return _error;                                                                       \
-        if(debug_synchronous)                                                                    \
-        {                                                                                        \
-            std::cout << name << "(" << size << ")";                                             \
-            auto __error = hipStreamSynchronize(stream);                                         \
-            if(__error != hipSuccess)                                                            \
-                return __error;                                                                  \
-            auto _end = std::chrono::high_resolution_clock::now();                               \
-            auto _d   = std::chrono::duration_cast<std::chrono::duration<double>>(_end - start); \
-            std::cout << " " << _d.count() * 1000 << " ms" << '\n';                              \
-        }                                                                                        \
-    }
+    #define ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(name, size, start)                           \
+        {                                                                                            \
+            auto _error = hipGetLastError();                                                         \
+            if(_error != hipSuccess)                                                                 \
+                return _error;                                                                       \
+            if(debug_synchronous)                                                                    \
+            {                                                                                        \
+                std::cout << name << "(" << size << ")";                                             \
+                auto __error = hipStreamSynchronize(stream);                                         \
+                if(__error != hipSuccess)                                                            \
+                    return __error;                                                                  \
+                auto _end = std::chrono::high_resolution_clock::now();                               \
+                auto _d   = std::chrono::duration_cast<std::chrono::duration<double>>(_end - start); \
+                std::cout << " " << _d.count() * 1000 << " ms" << '\n';                              \
+            }                                                                                        \
+        }
 
-#define RETURN_ON_ERROR(...)              \
-    do                                    \
-    {                                     \
-        hipError_t error = (__VA_ARGS__); \
-        if(error != hipSuccess)           \
-        {                                 \
-            return error;                 \
-        }                                 \
-    }                                     \
-    while(0)
+    #define RETURN_ON_ERROR(...)              \
+        do                                    \
+        {                                     \
+            hipError_t error = (__VA_ARGS__); \
+            if(error != hipSuccess)           \
+            {                                 \
+                return error;                 \
+            }                                 \
+        }                                     \
+        while(0)
 
 template<class T, class IdxT>
 struct reduce_op
@@ -220,6 +222,97 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
 
 } // namespace detail
 
+    #undef ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
+
+#endif // DOXYGEN_DOCUMENTATION_BUILD
+
+/// \addtogroup devicemodule
+/// @{
+
+/// \brief Searches the input sequence for the first appearance of a consecutive pair of equal elements.
+///
+/// The returned index is either: the index within the input array of the first element of the first
+/// pair of consecutive equal elements found or the size of the input array if no such pair is found.
+/// Equivalent to the following code
+/// \code{.cpp}
+/// if(size > 1)
+/// {
+///     for(std::size_t i = 0; i < size - 1 ; ++i)
+///         if (op(input[i], input[i + 1]))
+///             return i;
+/// }
+/// return size;
+/// \endcode
+///
+/// \par Overview
+/// * The contents of the inputs are not altered by the function.
+/// * Returns the required size of `temporary_storage` in `storage_size` if `temporary_storage` is a null pointer.
+/// * Accepts custom \p op.
+/// * Streams in graph capture mode are supported.
+///
+/// \tparam Config [optional] Configuration of the primitive, must be `default_config` or `adjacent_find_config`.
+/// \tparam InputIteratorType [inferred] Random-access iterator type of the input range. Must meet the
+/// requirements of a C++ InputIterator concept. It can be a simple pointer type.
+/// \tparam OutputIteratorType [inferred] Random-access iterator type of the output index. Must meet the
+/// requirements of a C++ OutputIterator concept. It can be a simple pointer type.
+/// \tparam BinaryPred [inferred] Boolean binary operation function object that will be applied to
+/// consecutive items to check whether they are equal or not. The signature of the function should be equivalent
+/// to the following:
+/// <tt>bool f(const T& a, const T& b)</tt>. The signature does not need to have
+/// <tt>const &</tt>, but the function object must not modify the object passed to it.
+/// The operator must meet the C++ named requirement \p BinaryPredicate.
+/// The default operation used is <tt>rocprim::equal_to<T></tt>, where \p T is the type of the elements
+/// in the input range obtained with <tt>std::iterator_traits<InputIteratorType>::value_type</tt>>.
+///
+/// \param [in] temporary_storage Pointer to a device-accessible temporary storage. When
+/// a null pointer is passed, the required allocation size (in bytes) is written to
+/// `storage_size` and the function returns without performing any device computation.
+/// \param [in,out] storage_size Reference to a size (in bytes) of `temporary_storage`
+/// \param [in] input Iterator to the input range.
+/// \param [out] output iterator to the output index.
+/// \param [in] size Number of items in the input.
+/// \param [in] op [optional] The boolean binary operation to be used by the algorithm. Default is
+/// \p ::rocprim::equal_to specialized for the type of the input elements.
+/// \param [in] stream [optional] HIP stream object. Default is `0` (the default stream).
+/// \param [in] debug_synchronous [optional] If true, synchronization after every kernel
+/// launch is forced in order to check for errors and extra debugging info is printed to the
+/// standard output. Default value is `false`.
+///
+/// \return `hipSuccess` (0) after a successful search, otherwise the HIP runtime error of
+/// type `hipError_t`.
+///
+/// \par Example
+/// \parblock
+/// In this example a device-level adjacent_find operation is performed on integer values.
+///
+/// \code{.cpp}
+/// #include <rocprim/rocprim.hpp> //or <rocprim/device/device_adjacent_find.hpp>
+///
+/// // Custom boolean binary function
+/// auto equal_op = [](int a, int b) -> bool { return (a - b == 2); };
+///
+/// // Prepare input and output (declare pointers, allocate device memory etc.)
+/// std::size_t  size;   // e.g., 8
+/// int*         input;  // e.g., [8, 7, 5, 4, 3, 2, 1, 0]
+/// std::size_t* output; // output index
+/// auto         custom_op = equal_op{};
+///
+/// std::size_t  temporary_storage_size_bytes;
+/// void*        temporary_storage_ptr = nullptr;
+///
+/// // Get required size of the temporary storage
+/// rocprim::adjacent_find(
+///     temporary_storage_ptr, temporary_storage_size_bytes, input, output, size, custom_op);
+///
+/// // Allocate temporary storage
+/// hipMalloc(&temporary_storage_ptr, temporary_storage_size_bytes);
+///
+/// // Perform adjacent find
+/// rocprim::adjacent_find(
+///     temporary_storage_ptr, temporary_storage_size_bytes, input, output, size, custom_op);
+/// // output: 1
+/// \endcode
+/// \endparblock
 template<typename Config = default_config,
          typename InputIterator,
          typename OutputIterator,
@@ -245,7 +338,8 @@ hipError_t adjacent_find(void* const       temporary_storage,
                                               debug_synchronous);
 }
 
-#undef ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
+/// @}
+// end of group devicemodule
 
 END_ROCPRIM_NAMESPACE
 

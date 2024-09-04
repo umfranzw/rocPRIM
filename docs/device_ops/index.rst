@@ -19,6 +19,7 @@
    * :ref:`dev-select`
    * :ref:`dev-reduce`
    * :ref:`dev-adjacent_difference`
+   * :ref:`dev-adjacent_find`
    * :ref:`dev-binary_search`
    * :ref:`dev-histogram`
    * :ref:`dev-device_copy`

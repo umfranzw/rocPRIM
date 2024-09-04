@@ -54,6 +54,7 @@ Sequence Search
 ===============
 
 * ``find_first_of`` searches for the first occurrence of any of the provided elements.
+* ``adjacent_find`` searches a given sequence for the first occurence of two consecutive equal elements.
 
 Other operations
 ======================
