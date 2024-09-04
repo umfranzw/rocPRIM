@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef ROCPRIM_DEVICE_DETAIL_DEVICE_FIND_END_HPP_
-#define ROCPRIM_DEVICE_DETAIL_DEVICE_FIND_END_HPP_
+#ifndef ROCPRIM_DEVICE_DETAIL_DEVICE_SEARCH_HPP_
+#define ROCPRIM_DEVICE_DETAIL_DEVICE_SEARCH_HPP_
 
 #include "../../detail/temp_storage.hpp"
 
@@ -73,14 +73,13 @@ namespace detail
     while(0)
 
 template<class Config, class InputIterator1, class InputIterator2, class BinaryFunction>
-ROCPRIM_KERNEL
-__launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_kernel(InputIterator1 input,
-                   InputIterator2 keys,
-                   size_t*        output,
-                   size_t         size,
-                   size_t         keys_size,
-                   BinaryFunction compare_function)
+ROCPRIM_DEVICE
+void search_kernel_impl(InputIterator1 input,
+                        InputIterator2 keys,
+                        size_t*        output,
+                        size_t         size,
+                        size_t         keys_size,
+                        BinaryFunction compare_function)
 {
     constexpr search_config_params params = device_params<Config>();
 
@@ -142,12 +141,24 @@ void search_kernel(InputIterator1 input,
 template<class Config, class InputIterator1, class InputIterator2, class BinaryFunction>
 ROCPRIM_KERNEL
 __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_kernel_shared(InputIterator1 input,
-                          InputIterator2 keys,
-                          size_t*        output,
-                          size_t         size,
-                          size_t         keys_size,
-                          BinaryFunction compare_function)
+void search_kernel(InputIterator1 input,
+                   InputIterator2 keys,
+                   size_t*        output,
+                   size_t         size,
+                   size_t         keys_size,
+                   BinaryFunction compare_function)
+{
+    search_kernel_impl<Config>(input, keys, output, size, keys_size, compare_function);
+}
+
+template<class Config, class InputIterator1, class InputIterator2, class BinaryFunction>
+ROCPRIM_DEVICE
+void search_kernel_shared_impl(InputIterator1 input,
+                               InputIterator2 keys,
+                               size_t*        output,
+                               size_t         size,
+                               size_t         keys_size,
+                               BinaryFunction compare_function)
 {
     using value_type = typename std::iterator_traits<InputIterator1>::value_type;
     using key_type   = typename std::iterator_traits<InputIterator2>::value_type;
@@ -279,6 +290,19 @@ void search_kernel_shared(InputIterator1 input,
     {
         atomic_min(output, index);
     }
+}
+
+template<class Config, class InputIterator1, class InputIterator2, class BinaryFunction>
+ROCPRIM_KERNEL
+__launch_bounds__(device_params<Config>().kernel_config.block_size)
+void search_kernel_shared(InputIterator1 input,
+                          InputIterator2 keys,
+                          size_t*        output,
+                          size_t         size,
+                          size_t         keys_size,
+                          BinaryFunction compare_function)
+{
+    search_kernel_shared_impl<Config>(input, keys, output, size, keys_size, compare_function);
 }
 
 ROCPRIM_KERNEL
@@ -443,4 +467,4 @@ hipError_t search_impl(void*          temporary_storage,
 
 END_ROCPRIM_NAMESPACE
 
-#endif
+#endif // ROCPRIM_DEVICE_DETAIL_DEVICE_SEARCH_HPP_

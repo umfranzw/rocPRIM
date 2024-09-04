@@ -69,7 +69,7 @@ BEGIN_ROCPRIM_NAMESPACE
 /// \param [in] keys iterator to the key range.
 /// \param [out] output iterator to the output range. The output is one element.
 /// \param [in] size number of element in the input range.
-/// \param [in] key_size number of element in the key range.
+/// \param [in] keys_size number of element in the key range.
 /// \param [in] compare_function binary operation function object that will be used for comparison.
 ///   The signature of the function should be equivalent to the following:
 ///   <tt>bool f(const T &a, const T &b);</tt>. The signature does not need to have
@@ -153,4 +153,4 @@ hipError_t find_end(void*          temporary_storage,
 
 END_ROCPRIM_NAMESPACE
 
-#endif
+#endif // ROCPRIM_DEVICE_DEVICE_FIND_END_HPP_
