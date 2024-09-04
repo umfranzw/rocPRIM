@@ -35,36 +35,36 @@ namespace detail
 
 // generic struct that instantiates custom configurations
 template<typename Config, typename>
-struct wrapped_find_end_config
+struct wrapped_search_config
 {
     template<target_arch Arch>
     struct architecture_config
     {
-        static constexpr find_end_config_params params = Config{};
+        static constexpr search_config_params params = Config{};
     };
 };
 
-// specialized for rocprim::default_config, which instantiates the default_find_end_config
+// specialized for rocprim::default_config, which instantiates the default_search_config
 template<typename Type>
-struct wrapped_find_end_config<default_config, Type>
+struct wrapped_search_config<default_config, Type>
 {
     template<target_arch Arch>
     struct architecture_config
     {
-        static constexpr find_end_config_params params = {2048, kernel_config<256, 4>()};
+        static constexpr search_config_params params = {2048, kernel_config<256, 4>()};
     };
 };
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 template<typename Config, typename Type>
 template<target_arch Arch>
-constexpr find_end_config_params
-    wrapped_find_end_config<Config, Type>::architecture_config<Arch>::params;
+constexpr search_config_params
+    wrapped_search_config<Config, Type>::architecture_config<Arch>::params;
 
 template<typename Type>
 template<target_arch Arch>
-constexpr find_end_config_params
-    wrapped_find_end_config<default_config, Type>::architecture_config<Arch>::params;
+constexpr search_config_params
+    wrapped_search_config<default_config, Type>::architecture_config<Arch>::params;
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
 } // namespace detail

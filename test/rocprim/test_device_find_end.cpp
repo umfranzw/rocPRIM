@@ -103,7 +103,7 @@ using RocprimDeviceFindEndTestsParams = ::testing::Types<
                         int,
                         size_t,
                         rocprim::equal_to<int>,
-                        rocprim::find_end_config<64, 16, 1024>,
+                        rocprim::search_config<64, 16, 1024>,
                         false,
                         false>>;
 

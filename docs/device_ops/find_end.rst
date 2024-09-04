@@ -11,7 +11,7 @@ Find end
 Configuring the kernel
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. doxygenstruct::  rocprim::find_end_config
+.. doxygenstruct::  rocprim::search_config
 
 find_end
 ~~~~~~~~

@@ -1179,11 +1179,11 @@ struct search_config_params
 /// \tparam ItemsPerThread number of items processed by each thread.
 /// \tparam MaxSharedKeyBytes maximum number of bytes for which a shared key is used.
 template<unsigned int BlockSize, unsigned int ItemsPerThread, unsigned int MaxSharedKeyBytes>
-struct find_end_config : public detail::find_end_config_params
+struct search_config : public detail::search_config_params
 {
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-    constexpr find_end_config()
-        : detail::find_end_config_params{
+    constexpr search_config()
+        : detail::search_config_params{
             MaxSharedKeyBytes, {BlockSize, ItemsPerThread, ROCPRIM_GRID_SIZE_LIMIT}
     }
     {}
