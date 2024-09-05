@@ -34,10 +34,15 @@ namespace detail
 {
 namespace adjacent_find
 {
-template<class T>
+template<class OutputT, class IdT>
 ROCPRIM_KERNEL __launch_bounds__(1)
-void init_ordered_tile_id(ordered_block_id<T> ordered_tile_id)
+void init_adjacent_find(OutputT*              reduce_output,
+                        ordered_block_id<IdT> ordered_tile_id,
+                        const size_t          size)
 {
+    // Reset output value.
+    *reduce_output = size;
+
     // Reset ordered_block_id.
     ordered_tile_id.reset();
 }

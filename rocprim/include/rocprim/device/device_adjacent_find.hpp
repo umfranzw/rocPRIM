@@ -139,17 +139,22 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
         return result;
     }
 
-    RETURN_ON_ERROR(hipMemcpyAsync(reduce_output,
-                                   &size,
-                                   sizeof(*reduce_output),
-                                   hipMemcpyHostToDevice,
-                                   stream));
+    std::chrono::time_point<std::chrono::high_resolution_clock> start;
+    if(debug_synchronous)
+    {
+        start = std::chrono::high_resolution_clock::now();
+    }
+
+    // Launch adjacent_find::init_adjacent_find
+    auto ordered_tile_id = ordered_tile_id_type::create(ordered_tile_id_storage);
+    adjacent_find::init_adjacent_find<<<1, 1, 0, stream>>>(reduce_output, ordered_tile_id, size);
+    ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(
+        "rocprim::detail::adjacent_find::init_adjacent_find",
+        size,
+        start);
 
     if(size > 1)
     {
-        auto ordered_tile_id = ordered_tile_id_type::create(ordered_tile_id_storage);
-        adjacent_find::init_ordered_tile_id<<<1, 1, 0, stream>>>(ordered_tile_id);
-
         // Wrap adjacent input in zip iterator with idx values
         auto iota = ::rocprim::make_counting_iterator<index_type>(0);
         auto wrapped_input
@@ -191,8 +196,6 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
                                                           int(block_size)));
         min_grid_size = std::min(static_cast<unsigned int>(min_grid_size), grid_size);
 
-        // Launch adjacent_find::block_reduce_kernel
-        std::chrono::time_point<std::chrono::high_resolution_clock> start;
         if(debug_synchronous)
         {
             start = std::chrono::high_resolution_clock::now();
@@ -211,11 +214,12 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
             start);
     }
 
-    RETURN_ON_ERROR(hipMemcpyAsync(output,
-                                   reduce_output,
-                                   sizeof(*reduce_output),
-                                   hipMemcpyDeviceToDevice,
-                                   stream));
+    ::rocprim::transform(reduce_output,
+                         output,
+                         1,
+                         ::rocprim::identity<void>(),
+                         stream,
+                         debug_synchronous);
 
     return hipSuccess;
 }
