@@ -1093,6 +1093,9 @@ struct find_first_of_config_params
     kernel_config_params kernel_config{};
 };
 
+struct adjacent_find_config_tag
+{};
+
 struct adjacent_find_config_params
 {
     kernel_config_params kernel_config;
@@ -1123,6 +1126,8 @@ struct find_first_of_config : public detail::find_first_of_config_params
 template<unsigned int BlockSize, unsigned int ItemsPerThread>
 struct adjacent_find_config : public detail::adjacent_find_config_params
 {
+    /// \brief Identifies the algorithm associated to the config.
+    using tag = detail::adjacent_find_config_tag;
 #ifndef DOXYGEN_DOCUMENTATION_BUILD
     constexpr adjacent_find_config()
         : detail::adjacent_find_config_params{
@@ -1142,6 +1147,17 @@ struct default_find_first_of_config_base
         = ::rocprim::detail::ceiling_div<unsigned int>(sizeof(Value), sizeof(int));
 
     using type = find_first_of_config<256, ::rocprim::max(1u, 16u / item_scale)>;
+};
+
+template<typename InputT>
+struct default_adjacent_find_config_base
+{
+    static constexpr unsigned int item_scale
+        = ::rocprim::detail::ceiling_div<unsigned int>(sizeof(InputT), sizeof(int));
+
+    using type
+        = adjacent_find_config<limit_block_size<1024U, sizeof(InputT), ROCPRIM_WARP_SIZE_64>::value,
+                               ::rocprim::max(1u, 16u / item_scale)>;
 };
 
 } // namespace detail

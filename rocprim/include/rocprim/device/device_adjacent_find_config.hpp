@@ -23,6 +23,7 @@
 
 #include "config_types.hpp"
 
+// #include "detail/config/device_adjacent_find.hpp" TODO: include this when tuned
 #include "detail/device_config_helper.hpp"
 
 /// \addtogroup primitivesmodule_deviceconfigs
@@ -36,6 +37,9 @@ namespace detail
 template<typename Config, typename>
 struct wrapped_adjacent_find_config
 {
+    static_assert(std::is_same<typename Config::tag, detail::adjacent_find_config_tag>::value,
+                  "Config must be a specialization of struct template adjacent_find_config");
+
     template<target_arch Arch>
     struct architecture_config
     {
@@ -49,7 +53,9 @@ struct wrapped_adjacent_find_config<default_config, Type>
     template<target_arch Arch>
     struct architecture_config
     {
-        static constexpr adjacent_find_config_params params = {kernel_config<256, 16>()};
+        static constexpr adjacent_find_config_params params =
+            typename default_adjacent_find_config_base<Type>::type{};
+        // = default_adjacent_find_config<static_cast<unsigned int>(Arch), Type>(); TODO: use this when tuned
     };
 };
 

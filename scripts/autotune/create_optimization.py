@@ -523,6 +523,14 @@ class AlgorithmDeviceAdjacentDifferenceInplace(Algorithm):
     def __init__(self, fallback_entries):
         Algorithm.__init__(self, fallback_entries)
 
+class AlgorithmDeviceAdjacentFind(Algorithm):
+    algorithm_name = "device_adjacent_find"
+    cpp_configuration_template_name = "adjacent_find_config_template"
+    config_selection_params = [
+        SelectionType(name="input_type", is_optional=False, select_on_size_only=False)]
+    def __init__(self, fallback_entries):
+        Algorithm.__init__(self, fallback_entries)
+
 class AlgorithmDeviceSegmentedRadixSort(Algorithm):
     algorithm_name = "device_segmented_radix_sort"
     cpp_configuration_template_name = "segmented_radix_sort_config_template"
@@ -663,6 +671,8 @@ def create_algorithm(algorithm_name: str, fallback_entries: List[FallbackCase]):
         return AlgorithmDeviceAdjacentDifference(fallback_entries)
     elif algorithm_name == 'device_adjacent_difference_inplace':
         return AlgorithmDeviceAdjacentDifferenceInplace(fallback_entries)
+    elif algorithm_name == 'device_adjacent_find':
+        return AlgorithmDeviceAdjacentFind(fallback_entries)
     elif algorithm_name == 'device_segmented_radix_sort':
         return AlgorithmDeviceSegmentedRadixSort(fallback_entries)
     elif algorithm_name == 'device_transform':

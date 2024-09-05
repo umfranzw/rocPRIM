@@ -597,6 +597,28 @@ std::vector<T>
     return keys;
 }
 
+template<class T, class U, class V>
+inline auto get_random_value(U min, V max, size_t seed_value)
+    -> std::enable_if_t<rocprim::is_arithmetic<T>::value, T>
+{
+    T           result;
+    engine_type gen(seed_value);
+    generate_random_data_n(&result, 1, min, max, gen);
+    return result;
+}
+
+template<class T>
+inline auto get_random_value(T min, T max, size_t seed_value)
+    -> std::enable_if_t<is_custom_type<T>::value, T>
+{
+    typename T::first_type  result_first;
+    typename T::second_type result_second;
+    engine_type             gen(seed_value);
+    generate_random_data_n(&result_first, 1, min.x, max.x, gen);
+    generate_random_data_n(&result_second, 1, min.y, max.y, gen);
+    return T{result_first, result_second};
+}
+
 template <typename T, T, typename>
 struct make_index_range_impl;
 

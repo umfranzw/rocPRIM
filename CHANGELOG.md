@@ -15,6 +15,7 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
   * Unit tests can be run with `[--emulation|-e|--test|-t]=<test_name>`
 * Added tuned configurations for segmented radix sort for gfx942 to improve performance on this architecture.
 * Added a parallel device-level function, `rocprim::adjacent_find`, similar to the C++ Standard Library `std::adjacent_find` algorithm.
+* Added configuration autotuning to device adjacent find (`rocprim::adjacent_find`) for improved performance on selected architectures.
 
 ### Changed
 
