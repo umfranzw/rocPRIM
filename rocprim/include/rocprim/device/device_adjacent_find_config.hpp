@@ -47,8 +47,22 @@ struct wrapped_adjacent_find_config
     };
 };
 
+// Generic for default config: instantiate base config.
+template<typename Type, typename Enable = void>
+struct wrapped_adjacent_find_impl
+{
+    template<target_arch Arch>
+    struct architecture_config
+    {
+        static constexpr adjacent_find_config_params params =
+            typename default_adjacent_find_config_base<Type>::type{};
+    };
+};
+
+// Specialization for default config if types are arithmetic or half/bfloat16-precision
+// floating point types: instantiate the tuned config.
 template<typename Type>
-struct wrapped_adjacent_find_config<default_config, Type>
+struct wrapped_adjacent_find_impl<Type, std::enable_if_t<rocprim::is_arithmetic<Type>::value>>
 {
     template<target_arch Arch>
     struct architecture_config
@@ -59,16 +73,27 @@ struct wrapped_adjacent_find_config<default_config, Type>
     };
 };
 
+// Specialization for default config.
+template<typename Type>
+struct wrapped_adjacent_find_config<default_config, Type> : wrapped_adjacent_find_impl<Type>
+{};
+
 #ifndef DOXYGEN_DOCUMENTATION_BUILD
 template<typename Config, typename Type>
 template<target_arch Arch>
 constexpr adjacent_find_config_params
     wrapped_adjacent_find_config<Config, Type>::architecture_config<Arch>::params;
 
-template<typename Type>
+template<typename Type, typename Enable>
 template<target_arch Arch>
 constexpr adjacent_find_config_params
-    wrapped_adjacent_find_config<default_config, Type>::architecture_config<Arch>::params;
+    wrapped_adjacent_find_impl<Type, Enable>::architecture_config<Arch>::params;
+
+template<typename Type>
+template<target_arch Arch>
+constexpr adjacent_find_config_params wrapped_adjacent_find_impl<
+    Type,
+    std::enable_if_t<is_arithmetic<Type>::value>>::architecture_config<Arch>::params;
 #endif // DOXYGEN_DOCUMENTATION_BUILD
 
 } // namespace detail
