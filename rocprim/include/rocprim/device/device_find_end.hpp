@@ -38,10 +38,9 @@ BEGIN_ROCPRIM_NAMESPACE
 
 /// \brief Searches for the last occurrence of the sequence.
 ///
-/// Searches the input for the last sequence where the the comparison
-///   function returns true with the key sequence. Then outputs the index
-///   of the start of the last sequence or if the sequence is not in the
-///   input it returns the size.
+/// Searches the input for the last occurence of a sequence, according to a particular
+///   comparison function. If found, the index of the first item of the found sequence
+///   in the input is returned. Otherwise, returns the size of the input.
 ///
 /// \par Overview
 /// * The contents of the inputs are not altered by the function.
@@ -57,7 +56,7 @@ BEGIN_ROCPRIM_NAMESPACE
 ///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
 /// \tparam OutputIterator [inferred] random-access iterator type of the input range. Must meet the
 ///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
-/// \tparam CompareFunction [inferred] Type of binary function that accepts a argument of the
+/// \tparam BinaryFunction [inferred] Type of binary function that accepts a argument of the
 ///   type `InputIterator1` and of the type `InputIterator1` returns a value convertible to bool.
 ///   Default type is `rocprim::less<>.`
 ///
@@ -80,7 +79,7 @@ BEGIN_ROCPRIM_NAMESPACE
 /// \param [in] debug_synchronous [optional] If true, synchronization after every kernel
 ///   launch is forced in order to check for errors. Default value is `false`.
 ///
-/// \returns `hipSuccess` (`0`) after successful rearrangement; otherwise a HIP runtime error of
+/// \returns `hipSuccess` (`0`) after successful search; otherwise a HIP runtime error of
 ///   type `hipError_t`.
 ///
 /// \par Example

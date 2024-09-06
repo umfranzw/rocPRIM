@@ -124,7 +124,7 @@ void search_kernel_impl(InputIterator1 input,
     }
 
     // Construct a mask of threads in this wave which have the same digit.
-    lane_mask_type peer_mask = match_any<2>(find_pattern);
+    lane_mask_type peer_mask = ballot(find_pattern);
 
     wave_barrier();
 
@@ -278,7 +278,7 @@ void search_kernel_shared_impl(InputIterator1 input,
     }
 
     // Construct a mask of threads in this wave which have the same digit.
-    lane_mask_type peer_mask = match_any<2>(find_pattern);
+    lane_mask_type peer_mask = ballot(find_pattern);
 
     wave_barrier();
 

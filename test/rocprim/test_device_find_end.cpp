@@ -173,11 +173,11 @@ TYPED_TEST(RocprimDeviceFindEndTests, FindEnd)
                 std::vector<key_type> keys(key_size);
                 if(pattern + key_size < size)
                 {
-                    keys.assign(input.begin(), input.begin() + key_size);
+                    keys.assign(input.begin() + pattern, input.begin() + pattern + key_size);
                 }
                 else
                 {
-                    keys.assign(input.begin(), input.end());
+                    keys.assign(input.begin() + pattern, input.end());
                 }
 
                 value_type* d_input;
@@ -203,6 +203,10 @@ TYPED_TEST(RocprimDeviceFindEndTests, FindEnd)
 
                 const auto input_it
                     = test_utils::wrap_in_indirect_iterator<use_indirect_iterator>(d_input);
+                const auto keys_it
+                    = test_utils::wrap_in_indirect_iterator<use_indirect_iterator>(d_keys);
+                const auto output_keys
+                    = test_utils::wrap_in_indirect_iterator<use_indirect_iterator>(d_output);
 
                 // compare function
                 compare_function compare_op;
@@ -214,8 +218,8 @@ TYPED_TEST(RocprimDeviceFindEndTests, FindEnd)
                 HIP_CHECK(rocprim::find_end<config>(nullptr,
                                                     temp_storage_size_bytes,
                                                     input_it,
-                                                    d_keys,
-                                                    d_output,
+                                                    keys_it,
+                                                    output_keys,
                                                     input.size(),
                                                     keys.size(),
                                                     compare_op,
@@ -239,8 +243,8 @@ TYPED_TEST(RocprimDeviceFindEndTests, FindEnd)
                 HIP_CHECK(rocprim::find_end<config>(d_temp_storage,
                                                     temp_storage_size_bytes,
                                                     input_it,
-                                                    d_keys,
-                                                    d_output,
+                                                    keys_it,
+                                                    output_keys,
                                                     input.size(),
                                                     keys.size(),
                                                     compare_op,
@@ -279,6 +283,164 @@ TYPED_TEST(RocprimDeviceFindEndTests, FindEnd)
                     test_utils::cleanupGraphHelper(graph, graph_instance);
                     HIP_CHECK(hipStreamDestroy(stream));
                 }
+            }
+        }
+    }
+}
+
+TYPED_TEST(RocprimDeviceFindEndTests, FindEndRepetition)
+{
+    int device_id = test_common_utils::obtain_device_from_ctest();
+    SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
+    HIP_CHECK(hipSetDevice(device_id));
+
+    using value_type                     = typename TestFixture::value_type;
+    using key_type                       = typename TestFixture::key_type;
+    using index_type                     = typename TestFixture::index_type;
+    using compare_function               = typename TestFixture::compare_function;
+    using config                         = typename TestFixture::config;
+    const bool     debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
+
+    size_t key_size = 10;
+
+    for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
+    {
+        unsigned int seed_value
+            = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
+        SCOPED_TRACE(testing::Message() << "with seed = " << seed_value);
+
+        for(size_t size : test_utils::get_sizes(seed_value))
+        {
+            hipStream_t stream = 0; // default
+
+            if(size < key_size)
+            {
+                continue;
+            }
+
+            SCOPED_TRACE(testing::Message() << "with size = " << size);
+
+            if(TestFixture::use_graphs)
+            {
+                // Default stream does not support hipGraph stream capture, so create one
+                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
+            }
+
+            // Generate data
+            std::vector<key_type> keys;
+            if(rocprim::is_floating_point<value_type>::value)
+            {
+                keys = test_utils::get_random_data<key_type>(key_size, -1000, 1000, seed_value);
+            }
+            else
+            {
+                keys = test_utils::get_random_data<key_type>(
+                    key_size,
+                    test_utils::numeric_limits<key_type>::min(),
+                    test_utils::numeric_limits<key_type>::max(),
+                    seed_value);
+            }
+
+            std::vector<value_type> input(size);
+            for(size_t i = 0; i < size / key_size; i++)
+            {
+                std::copy(keys.begin(), keys.end(), input.begin() + i * key_size);
+            }
+
+            value_type* d_input;
+            key_type*   d_keys;
+            index_type* d_output;
+            HIP_CHECK(
+                test_common_utils::hipMallocHelper(&d_input, input.size() * sizeof(*d_input)));
+
+            HIP_CHECK(test_common_utils::hipMallocHelper(&d_keys, keys.size() * sizeof(*d_keys)));
+
+            HIP_CHECK(test_common_utils::hipMallocHelper(&d_output, sizeof(*d_output)));
+
+            HIP_CHECK(hipMemcpy(d_input,
+                                input.data(),
+                                input.size() * sizeof(*d_input),
+                                hipMemcpyHostToDevice));
+
+            HIP_CHECK(hipMemcpy(d_keys,
+                                keys.data(),
+                                keys.size() * sizeof(*d_keys),
+                                hipMemcpyHostToDevice));
+
+            const auto input_it
+                = test_utils::wrap_in_indirect_iterator<use_indirect_iterator>(d_input);
+
+            // compare function
+            compare_function compare_op;
+
+            // temp storage
+            size_t temp_storage_size_bytes;
+            void*  d_temp_storage = nullptr;
+            // Get size of d_temp_storage
+            HIP_CHECK(rocprim::find_end<config>(nullptr,
+                                                temp_storage_size_bytes,
+                                                input_it,
+                                                d_keys,
+                                                d_output,
+                                                input.size(),
+                                                keys.size(),
+                                                compare_op,
+                                                stream,
+                                                debug_synchronous));
+
+            // temp_storage_size_bytes must be >0
+            ASSERT_GT(temp_storage_size_bytes, 0);
+
+            // allocate temporary storage
+            HIP_CHECK(test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size_bytes));
+
+            hipGraph_t graph;
+            if(TestFixture::use_graphs)
+            {
+                graph = test_utils::createGraphHelper(stream);
+            }
+
+            // Run
+            HIP_CHECK(rocprim::find_end<config>(d_temp_storage,
+                                                temp_storage_size_bytes,
+                                                input_it,
+                                                d_keys,
+                                                d_output,
+                                                input.size(),
+                                                keys.size(),
+                                                compare_op,
+                                                stream,
+                                                debug_synchronous));
+
+            hipGraphExec_t graph_instance;
+            if(TestFixture::use_graphs)
+            {
+                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+            }
+
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipDeviceSynchronize());
+
+            index_type output;
+            // Copy output to host
+            HIP_CHECK(hipMemcpy(&output, d_output, sizeof(*d_output), hipMemcpyDeviceToHost));
+
+            index_type expected
+                = std::find_end(input.begin(), input.end(), keys.begin(), keys.end(), compare_op)
+                  - input.begin();
+
+            ASSERT_EQ(output, expected);
+
+            HIP_CHECK(hipFree(d_input));
+            HIP_CHECK(hipFree(d_keys));
+            HIP_CHECK(hipFree(d_output));
+            HIP_CHECK(hipFree(d_temp_storage));
+
+            if(TestFixture::use_graphs)
+            {
+                test_utils::cleanupGraphHelper(graph, graph_instance);
+                HIP_CHECK(hipStreamDestroy(stream));
             }
         }
     }
