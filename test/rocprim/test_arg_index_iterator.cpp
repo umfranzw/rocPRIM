@@ -145,7 +145,8 @@ TYPED_TEST(RocprimArgIndexIteratorTests, ReduceArgMinimum)
         Iterator d_iter(d_input);
 
         arg_min reduce_op;
-        const key_value max(std::numeric_limits<difference_type>::max(), std::numeric_limits<T>::max());
+        const key_value max(test_utils::numeric_limits<difference_type>::max(),
+                            test_utils::numeric_limits<T>::max());
 
         // Calculate expected results on host
         Iterator x(input.data());

@@ -87,8 +87,8 @@ auto generate_key_input(KeyIter keys_input, size_t size, engine_type& rng_engine
     using key_type = typename std::iterator_traits<KeyIter>::value_type;
     test_utils::generate_random_data_n(keys_input,
                                        size,
-                                       std::numeric_limits<key_type>::min(),
-                                       std::numeric_limits<key_type>::max(),
+                                       test_utils::numeric_limits<key_type>::min(),
+                                       test_utils::numeric_limits<key_type>::max(),
                                        rng_engine);
 }
 
@@ -1302,8 +1302,8 @@ void sort_keys_over_4g()
 
     std::vector<key_type> keys_input
         = test_utils::get_random_data<key_type>(size,
-                                                std::numeric_limits<key_type>::min(),
-                                                std::numeric_limits<key_type>::max(),
+                                                test_utils::numeric_limits<key_type>::min(),
+                                                test_utils::numeric_limits<key_type>::max(),
                                                 seed_value);
 
     //generate histogram of the randomly generated values
@@ -1373,7 +1373,7 @@ void sort_keys_over_4g()
                         hipMemcpyDeviceToHost));
 
     size_t counter = 0;
-    for(size_t i = 0; i <= std::numeric_limits<key_type>::max(); ++i)
+    for(size_t i = 0; i <= test_utils::numeric_limits<key_type>::max(); ++i)
     {
         for(size_t j = 0; j < histogram[i]; ++j)
         {

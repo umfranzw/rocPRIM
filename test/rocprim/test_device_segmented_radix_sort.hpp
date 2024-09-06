@@ -149,11 +149,11 @@ inline void sort_keys()
             }
             else
             {
-                keys_input
-                    = test_utils::get_random_data<key_type>(size,
-                                                            std::numeric_limits<key_type>::min(),
-                                                            std::numeric_limits<key_type>::max(),
-                                                            seed_value);
+                keys_input = test_utils::get_random_data<key_type>(
+                    size,
+                    test_utils::numeric_limits<key_type>::min(),
+                    test_utils::numeric_limits<key_type>::max(),
+                    seed_value);
             }
 
             std::vector<offset_type> offsets;
@@ -309,11 +309,11 @@ inline void sort_pairs()
             }
             else
             {
-                keys_input
-                    = test_utils::get_random_data<key_type>(size,
-                                                            std::numeric_limits<key_type>::min(),
-                                                            std::numeric_limits<key_type>::max(),
-                                                            seed_value);
+                keys_input = test_utils::get_random_data<key_type>(
+                    size,
+                    test_utils::numeric_limits<key_type>::min(),
+                    test_utils::numeric_limits<key_type>::max(),
+                    seed_value);
             }
 
             std::vector<offset_type> offsets;
@@ -513,11 +513,11 @@ inline void sort_keys_double_buffer()
             }
             else
             {
-                keys_input
-                    = test_utils::get_random_data<key_type>(size,
-                                                            std::numeric_limits<key_type>::min(),
-                                                            std::numeric_limits<key_type>::max(),
-                                                            seed_value);
+                keys_input = test_utils::get_random_data<key_type>(
+                    size,
+                    test_utils::numeric_limits<key_type>::min(),
+                    test_utils::numeric_limits<key_type>::max(),
+                    seed_value);
             }
 
             std::vector<offset_type> offsets;
@@ -672,11 +672,11 @@ inline void sort_pairs_double_buffer()
             }
             else
             {
-                keys_input
-                    = test_utils::get_random_data<key_type>(size,
-                                                            std::numeric_limits<key_type>::min(),
-                                                            std::numeric_limits<key_type>::max(),
-                                                            seed_value);
+                keys_input = test_utils::get_random_data<key_type>(
+                    size,
+                    test_utils::numeric_limits<key_type>::min(),
+                    test_utils::numeric_limits<key_type>::max(),
+                    seed_value);
             }
 
             std::vector<offset_type> offsets;

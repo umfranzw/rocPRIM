@@ -67,7 +67,7 @@ template<class T>
 struct numeric_limits
     : public std::conditional<is_custom_test_type<T>::value || is_custom_test_array_type<T>::value,
                               detail::numeric_limits_custom_test_type<T>,
-                              std::numeric_limits<T>>::type
+                              rocprim::numeric_limits<T>>::type
 {};
 
 template<> struct numeric_limits<test_utils::half> : public std::numeric_limits<test_utils::half> {
@@ -229,13 +229,13 @@ template<typename Res, typename T>
 constexpr Res saturate_cast(T x) noexcept
 {
     // Handle overflow
-    if(test_utils::cmp_less(x, std::numeric_limits<Res>::min()))
+    if(test_utils::cmp_less(x, numeric_limits<Res>::min()))
     {
-        return std::numeric_limits<Res>::min();
+        return numeric_limits<Res>::min();
     }
-    if(test_utils::cmp_greater(x, std::numeric_limits<Res>::max()))
+    if(test_utils::cmp_greater(x, numeric_limits<Res>::max()))
     {
-        return std::numeric_limits<Res>::max();
+        return numeric_limits<Res>::max();
     }
     // No overflow
     return static_cast<Res>(x);

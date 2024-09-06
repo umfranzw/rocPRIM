@@ -147,8 +147,8 @@ void test_block_radix_rank()
         else
         {
             keys_input = test_utils::get_random_data<T>(size,
-                                                        std::numeric_limits<T>::min(),
-                                                        std::numeric_limits<T>::max(),
+                                                        test_utils::numeric_limits<T>::min(),
+                                                        test_utils::numeric_limits<T>::max(),
                                                         seed_value);
         }
 

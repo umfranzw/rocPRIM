@@ -142,6 +142,55 @@ struct is_compound
         !is_fundamental<T>::value
     > {};
 
+/// \brief Behaves like std::numeric_limits, but also supports __int128_t and __uint128_t.
+template<class T>
+struct numeric_limits : std::numeric_limits<T>
+{};
+
+template<>
+struct numeric_limits<__uint128_t> : std::numeric_limits<unsigned int>
+{
+    static constexpr int digits   = 128;
+    static constexpr int digits10 = 38;
+
+    static constexpr __uint128_t max()
+    {
+        return __int128_t{-1};
+    }
+
+    static constexpr __uint128_t min()
+    {
+        return __uint128_t{0};
+    }
+
+    static constexpr __uint128_t lowest()
+    {
+        return min();
+    }
+};
+
+template<>
+struct numeric_limits<__int128_t> : std::numeric_limits<int>
+{
+    static constexpr int digits   = 127;
+    static constexpr int digits10 = 38;
+
+    static constexpr __int128_t max()
+    {
+        return numeric_limits<__uint128_t>::max() >> 1;
+    }
+
+    static constexpr __int128_t min()
+    {
+        return -numeric_limits<__int128_t>::max() - 1;
+    }
+
+    static constexpr __int128_t lowest()
+    {
+        return min();
+    }
+};
+
 /// \brief Used to retrieve a type that can be treated as unsigned version of the template parameter.
 /// \tparam T - The signed type to find an unsigned equivalent for.
 /// \tparam size - the desired size (in bytes) of the unsigned type

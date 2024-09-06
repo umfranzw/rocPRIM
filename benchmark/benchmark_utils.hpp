@@ -340,11 +340,11 @@ struct generate_limits<T, std::enable_if_t<rocprim::is_integral<T>::value>>
 {
     static inline T min()
     {
-        return std::numeric_limits<T>::min();
+        return rocprim::numeric_limits<T>::min();
     }
     static inline T max()
     {
-        return std::numeric_limits<T>::max();
+        return rocprim::numeric_limits<T>::max();
     }
 };
 
@@ -447,19 +447,19 @@ auto limit_cast(U value) -> T
     {
         if(value < 0)
         {
-            return std::numeric_limits<T>::min();
+            return rocprim::numeric_limits<T>::min();
         }
         if(static_cast<common_type>(value)
-           > static_cast<common_type>(std::numeric_limits<T>::max()))
+           > static_cast<common_type>(rocprim::numeric_limits<T>::max()))
         {
-            return std::numeric_limits<T>::max();
+            return rocprim::numeric_limits<T>::max();
         }
     }
     else if(rocprim::is_signed<T>::value && rocprim::is_unsigned<U>::value)
     {
-        if(value > std::numeric_limits<T>::max())
+        if(value > rocprim::numeric_limits<T>::max())
         {
-            return std::numeric_limits<T>::max();
+            return rocprim::numeric_limits<T>::max();
         }
     }
     else if(rocprim::is_floating_point<T>::value)
@@ -468,13 +468,13 @@ auto limit_cast(U value) -> T
     }
     else // Both T and U are signed
     {
-        if(value < static_cast<common_type>(std::numeric_limits<T>::min()))
+        if(value < static_cast<common_type>(rocprim::numeric_limits<T>::min()))
         {
-            return std::numeric_limits<T>::min();
+            return rocprim::numeric_limits<T>::min();
         }
-        else if(value > static_cast<common_type>(std::numeric_limits<T>::max()))
+        else if(value > static_cast<common_type>(rocprim::numeric_limits<T>::max()))
         {
-            return std::numeric_limits<T>::max();
+            return rocprim::numeric_limits<T>::max();
         }
     }
     return static_cast<T>(value);
@@ -559,7 +559,7 @@ std::vector<T>
     using key_distribution_type = std::conditional_t<rocprim::is_integral<T>::value,
                                                      std::uniform_int_distribution<dis_type>,
                                                      std::uniform_real_distribution<dis_type>>;
-    key_distribution_type key_distribution(std::numeric_limits<T>::max());
+    key_distribution_type key_distribution(rocprim::numeric_limits<T>::max());
     std::vector<T>        keys(size);
 
     size_t keys_start_index = 0;
