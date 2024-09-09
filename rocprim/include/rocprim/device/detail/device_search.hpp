@@ -305,19 +305,21 @@ void search_kernel_shared(InputIterator1 input,
     search_kernel_shared_impl<Config>(input, keys, output, size, keys_size, compare_function);
 }
 
+template<class T>
 ROCPRIM_KERNEL
-void set_output_kernel(size_t* output, size_t value)
+void set_output_kernel(T* output, T value)
 {
-    *output = static_cast<size_t>(value);
+    *output = value;
 }
 
+template<class T>
 ROCPRIM_KERNEL
-void reverse_index_kernel(size_t* output, size_t size, size_t keys_size)
+void reverse_index_kernel(T* output, T size, T keys_size)
 {
     // Return the reverse index as long as the index is lower than the size.
     if(*output < size)
     {
-        *output = static_cast<size_t>(size - keys_size) - *output;
+        *output = size - keys_size - *output;
     }
 }
 
