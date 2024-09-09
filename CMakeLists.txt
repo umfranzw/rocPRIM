@@ -48,7 +48,6 @@ option(BUILD_BENCHMARK "Build benchmarks" OFF)
 option(BUILD_NAIVE_BENCHMARK "Build naive benchmarks" OFF)
 option(BUILD_EXAMPLE "Build examples" OFF)
 option(BUILD_DOCS "Build documentation (requires sphinx)" OFF)
-option(USE_HIP_CPU "Prefer HIP-CPU runtime instead of HW acceleration" OFF)
 # Disables building tests, benchmarks, examples
 option(ONLY_INSTALL "Only install" OFF)
 option(BUILD_CODE_COVERAGE "Build with code coverage enabled" OFF)
@@ -80,39 +79,38 @@ else()
   set(PKG_BUILD_SHARED_LIBS ON)
 endif()
 set(BUILD_SHARED_LIBS OFF) # don't build client dependencies as shared
-if(NOT USE_HIP_CPU)
-  # Get dependencies (required here to get rocm-cmake)
-  include(cmake/Dependencies.cmake)
-  # Use target ID syntax if supported for GPU_TARGETS
-  if (NOT DEFINED AMDGPU_TARGETS)
-    set(GPU_TARGETS "all" CACHE STRING "GPU architectures to compile for")
-  else()
-    set(GPU_TARGETS "${AMDGPU_TARGETS}" CACHE STRING "GPU architectures to compile for")
-  endif()
-  set_property(CACHE GPU_TARGETS PROPERTY STRINGS "all")
 
-  if(GPU_TARGETS STREQUAL "all")
-    if(BUILD_ADDRESS_SANITIZER)
-      # ASAN builds require xnack
-      rocm_check_target_ids(DEFAULT_AMDGPU_TARGETS
-        TARGETS "gfx908:xnack+;gfx90a:xnack+;gfx940:xnack+;gfx941:xnack+;gfx942:xnack+"
-      )
-    else()
-      rocm_check_target_ids(DEFAULT_AMDGPU_TARGETS
-        TARGETS "gfx803;gfx900:xnack-;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151;gfx1200;gfx1201"
-      )
-    endif()
-    
-    set(GPU_TARGETS "${DEFAULT_AMDGPU_TARGETS}" CACHE STRING "GPU architectures to compile for" FORCE)
-  endif()
-
-  # TODO: Fix VerifyCompiler for HIP on Windows
-  if (NOT WIN32)
-    include(cmake/VerifyCompiler.cmake)
-  endif()
-  list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH} ${ROCM_PATH}/hip ${ROCM_PATH}/llvm ${ROCM_ROOT}/llvm ${ROCM_ROOT} ${ROCM_ROOT}/hip)
-  find_package(hip REQUIRED CONFIG PATHS ${HIP_DIR} ${ROCM_PATH} /opt/rocm)
+# Get dependencies (required here to get rocm-cmake)
+include(cmake/Dependencies.cmake)
+# Use target ID syntax if supported for GPU_TARGETS
+if (NOT DEFINED AMDGPU_TARGETS)
+  set(GPU_TARGETS "all" CACHE STRING "GPU architectures to compile for")
+else()
+  set(GPU_TARGETS "${AMDGPU_TARGETS}" CACHE STRING "GPU architectures to compile for")
 endif()
+set_property(CACHE GPU_TARGETS PROPERTY STRINGS "all")
+
+if(GPU_TARGETS STREQUAL "all")
+  if(BUILD_ADDRESS_SANITIZER)
+    # ASAN builds require xnack
+    rocm_check_target_ids(DEFAULT_AMDGPU_TARGETS
+      TARGETS "gfx908:xnack+;gfx90a:xnack+;gfx940:xnack+;gfx941:xnack+;gfx942:xnack+"
+    )
+  else()
+    rocm_check_target_ids(DEFAULT_AMDGPU_TARGETS
+      TARGETS "gfx803;gfx900:xnack-;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151;gfx1200;gfx1201"
+    )
+  endif()
+
+  set(GPU_TARGETS "${DEFAULT_AMDGPU_TARGETS}" CACHE STRING "GPU architectures to compile for" FORCE)
+endif()
+
+# TODO: Fix VerifyCompiler for HIP on Windows
+if (NOT WIN32)
+  include(cmake/VerifyCompiler.cmake)
+endif()
+list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH} ${ROCM_PATH}/hip ${ROCM_PATH}/llvm ${ROCM_ROOT}/llvm ${ROCM_ROOT} ${ROCM_ROOT}/hip)
+find_package(hip REQUIRED CONFIG PATHS ${HIP_DIR} ${ROCM_PATH} /opt/rocm)
 
 # FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
 option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
@@ -128,11 +126,6 @@ endif()
 if(BUILD_CODE_COVERAGE)
   add_compile_options(-fprofile-arcs -ftest-coverage)
   add_link_options(--coverage)
-endif()
-
-if(USE_HIP_CPU)
-  # Get dependencies
-  include(cmake/Dependencies.cmake)
 endif()
 
 # Setup VERSION

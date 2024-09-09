@@ -42,9 +42,6 @@
 // HIP API
 #include <hip/hip_runtime.h>
 #include <hip/hip_vector_types.h>
-#ifndef __HIP_CPU_RT__
-#include <hip/hip_ext.h>
-#endif
 
 // GoogleTest-compatible HIP_CHECK macro. FAIL is called to log the Google Test trace.
 // The lambda is invoked immediately as assertions that generate a fatal failure can

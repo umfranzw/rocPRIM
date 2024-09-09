@@ -110,11 +110,6 @@ You can build and install rocPRIM on Linux or Windows.
   # before 'cmake' or setting cmake option 'CMAKE_CXX_COMPILER' to path to the compiler.
   # Using HIP-clang:
   [CXX=hipcc] cmake -DBUILD_BENCHMARK=ON ../.
-  #
-  # ! EXPERIMENTAL !
-  # Alternatively one may build using the experimental (and highly incomplete) HIP-CPU back-end for host-side
-  # execution using any C++17 conforming compiler (supported by HIP-CPU). AMDGPU_* options are unavailable in this case. 
-  #   USE_HIP_CPU - OFF by default
 
   # Build
   make -j4

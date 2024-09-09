@@ -77,24 +77,10 @@ function(add_rocprim_benchmark BENCHMARK_SOURCE)
       rocprim
       benchmark::benchmark
   )
-  if(NOT USE_HIP_CPU)
-    target_link_libraries(${BENCHMARK_TARGET}
-      PRIVATE
-        rocprim_hip
-    )
-  else()
-    target_link_libraries(${BENCHMARK_TARGET}
-      PRIVATE
-        Threads::Threads
-        hip_cpu_rt::hip_cpu_rt
-    )
-    if(STL_DEPENDS_ON_TBB)
-      target_link_libraries(${BENCHMARK_TARGET}
-        PRIVATE
-          TBB::tbb
-      )
-    endif()
-  endif()
+  target_link_libraries(${BENCHMARK_TARGET}
+    PRIVATE
+      rocprim_hip
+  )
 
   target_compile_options(${BENCHMARK_TARGET}
     PRIVATE
