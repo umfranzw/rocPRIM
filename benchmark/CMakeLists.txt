@@ -132,11 +132,8 @@ add_rocprim_benchmark(benchmark_device_adjacent_difference.cpp)
 add_rocprim_benchmark(benchmark_device_adjacent_find.cpp)
 add_rocprim_benchmark(benchmark_device_batch_memcpy.cpp)
 add_rocprim_benchmark(benchmark_device_binary_search.cpp)
-<<<<<<< HEAD
 add_rocprim_benchmark(benchmark_device_find_first_of.cpp)
-=======
 add_rocprim_benchmark(benchmark_device_find_end.cpp)
->>>>>>> Implemented find_end with tests and benchmark
 add_rocprim_benchmark(benchmark_device_histogram.cpp)
 add_rocprim_benchmark(benchmark_device_merge.cpp)
 add_rocprim_benchmark(benchmark_device_merge_sort.cpp)
