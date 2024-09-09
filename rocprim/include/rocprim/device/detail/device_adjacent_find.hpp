@@ -100,9 +100,9 @@ void block_reduce_kernel(TransformedInputIterator transformed_input,
         transformed_input_type transformed_input_values[items_per_thread];
         transformed_input_type output_value;
 
-        if(tile_offset + items_per_tile > size) /* Last incomplete processing */
+        if(tile_offset + items_per_tile > size_t{size - 1}) /* Last incomplete processing */
         {
-            const std::size_t valid_in_last_iteration = size - tile_offset;
+            const std::size_t valid_in_last_iteration = size - 1 - tile_offset;
             block_load_direct_striped<block_size>(thread_id,
                                                   transformed_input + tile_offset,
                                                   transformed_input_values,
@@ -135,13 +135,10 @@ void block_reduce_kernel(TransformedInputIterator transformed_input,
         }
 
         // Save reduction's index into output if an adjacent pair is found
-        if(thread_id == 0)
+        if(thread_id == 0 && output_value < size)
         {
-            if(::rocprim::get<0>(output_value) != 0)
-            {
-                // Store global minimum
-                atomic_min(reduce_output, ::rocprim::get<1>(output_value));
-            }
+            // Store global minimum
+            atomic_min(reduce_output, output_value);
         }
 
         // Get next tile's id

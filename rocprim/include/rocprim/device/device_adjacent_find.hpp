@@ -69,29 +69,6 @@ namespace detail
         }                                     \
         while(0)
 
-template<class T, class IdxT>
-struct reduce_op
-{
-    // The reduction logic should be as follows:
-    // If both have 1's first, return the one with the smallest index
-    // Else:
-    //  * [opt 1] If only one of them has a 1 first, return the greater tuple (the one with
-    //            the 1 in the first place)
-    //  * [opt 2] If no 1's first, we can return any of the two tuples
-    // But if instead of 1s we use (-1)s, we can perform the reduction operation much faster by always
-    // taking the "lesser" tuple because:
-    //  * If both have (-1)s first, we still return the one with the smallest index
-    //  * If both have 0s first, we can return any of the two tuples
-    //  * If only one of them has a (-1) first, we return the lesser tuple (the one with
-    //    the (-1) in the first place)
-    ROCPRIM_DEVICE
-    inline constexpr ::rocprim::tuple<T, IdxT>
-        operator()(const ::rocprim::tuple<T, IdxT>& lhs, const ::rocprim::tuple<T, IdxT>& rhs) const
-    {
-        return lhs < rhs ? lhs : rhs;
-    }
-};
-
 template<typename Config = default_config,
          typename InputIterator,
          typename OutputIterator,
@@ -107,14 +84,13 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
                               const bool        debug_synchronous)
 {
     // Data types
-    using input_type             = typename std::iterator_traits<InputIterator>::value_type;
-    using op_result_type         = int; // use signed type to store (-1)s instead of 1s
-    using index_type             = std::size_t;
-    using wrapped_input_type     = ::rocprim::tuple<input_type, input_type, index_type>;
-    using transformed_input_type = ::rocprim::tuple<op_result_type, index_type>;
+    using input_type         = typename std::iterator_traits<InputIterator>::value_type;
+    using op_result_type     = bool;
+    using index_type         = std::size_t;
+    using wrapped_input_type = ::rocprim::tuple<input_type, input_type, index_type>;
 
     // Operations types
-    using reduce_op_type = reduce_op<op_result_type, index_type>;
+    using reduce_op_type = ::rocprim::minimum<index_type>;
 
     // Use dynamic tile id
     using ordered_tile_id_type = detail::ordered_block_id<unsigned long long>;
@@ -161,11 +137,13 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
             = ::rocprim::make_zip_iterator(::rocprim::make_tuple(input, input + 1, iota));
 
         // Transform input
-        auto wrapped_equal_op = [op](const wrapped_input_type& a) -> transformed_input_type
+        auto wrapped_equal_op = [op, size](const wrapped_input_type& a) -> index_type
         {
-            return ::rocprim::make_tuple(
-                -op_result_type(op(::rocprim::get<0>(a), ::rocprim::get<1>(a))),
-                ::rocprim::get<2>(a));
+            if(op_result_type(op(::rocprim::get<0>(a), ::rocprim::get<1>(a))))
+            {
+                return ::rocprim::get<2>(a);
+            }
+            return size;
         };
         auto transformed_input
             = ::rocprim::make_transform_iterator(wrapped_input, wrapped_equal_op);
@@ -205,7 +183,7 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
         adjacent_find_block_reduce_kernel<<<min_grid_size, block_size, shared_mem_bytes, stream>>>(
             transformed_input,
             reduce_output,
-            std::size_t{size - 1},
+            size,
             reduce_op_type{},
             ordered_tile_id);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(
