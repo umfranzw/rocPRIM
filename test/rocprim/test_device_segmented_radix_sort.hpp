@@ -139,22 +139,11 @@ inline void sort_keys()
             SCOPED_TRACE(testing::Message() << "with size = " << size);
 
             // Generate data
-            std::vector<key_type> keys_input;
-            if(rocprim::is_floating_point<key_type>::value)
-            {
-                keys_input = test_utils::get_random_data<key_type>(size,
-                                                                   static_cast<key_type>(-1000),
-                                                                   static_cast<key_type>(+1000),
-                                                                   seed_value);
-            }
-            else
-            {
-                keys_input = test_utils::get_random_data<key_type>(
-                    size,
-                    test_utils::numeric_limits<key_type>::min(),
-                    test_utils::numeric_limits<key_type>::max(),
-                    seed_value);
-            }
+            std::vector<key_type> keys_input = test_utils::get_random_data<key_type>(
+                size,
+                test_utils::generate_limits<key_type>::min(),
+                test_utils::generate_limits<key_type>::max(),
+                seed_value);
 
             std::vector<offset_type> offsets;
             unsigned int             segments_count = 0;
@@ -299,22 +288,11 @@ inline void sort_pairs()
             SCOPED_TRACE(testing::Message() << "with size = " << size);
 
             // Generate data
-            std::vector<key_type> keys_input;
-            if(rocprim::is_floating_point<key_type>::value)
-            {
-                keys_input = test_utils::get_random_data<key_type>(size,
-                                                                   static_cast<key_type>(-1000),
-                                                                   static_cast<key_type>(+1000),
-                                                                   seed_value);
-            }
-            else
-            {
-                keys_input = test_utils::get_random_data<key_type>(
-                    size,
-                    test_utils::numeric_limits<key_type>::min(),
-                    test_utils::numeric_limits<key_type>::max(),
-                    seed_value);
-            }
+            std::vector<key_type> keys_input = test_utils::get_random_data<key_type>(
+                size,
+                test_utils::generate_limits<key_type>::min(),
+                test_utils::generate_limits<key_type>::max(),
+                seed_value);
 
             std::vector<offset_type> offsets;
             unsigned int             segments_count = 0;
@@ -503,22 +481,11 @@ inline void sort_keys_double_buffer()
             SCOPED_TRACE(testing::Message() << "with size = " << size);
 
             // Generate data
-            std::vector<key_type> keys_input;
-            if(rocprim::is_floating_point<key_type>::value)
-            {
-                keys_input = test_utils::get_random_data<key_type>(size,
-                                                                   static_cast<key_type>(-1000),
-                                                                   static_cast<key_type>(+1000),
-                                                                   seed_value);
-            }
-            else
-            {
-                keys_input = test_utils::get_random_data<key_type>(
-                    size,
-                    test_utils::numeric_limits<key_type>::min(),
-                    test_utils::numeric_limits<key_type>::max(),
-                    seed_value);
-            }
+            std::vector<key_type> keys_input = test_utils::get_random_data<key_type>(
+                size,
+                test_utils::generate_limits<key_type>::min(),
+                test_utils::generate_limits<key_type>::max(),
+                seed_value);
 
             std::vector<offset_type> offsets;
             unsigned int             segments_count = 0;
@@ -662,22 +629,11 @@ inline void sort_pairs_double_buffer()
             SCOPED_TRACE(testing::Message() << "with size = " << size);
 
             // Generate data
-            std::vector<key_type> keys_input;
-            if(rocprim::is_floating_point<key_type>::value)
-            {
-                keys_input = test_utils::get_random_data<key_type>(size,
-                                                                   static_cast<key_type>(-1000),
-                                                                   static_cast<key_type>(+1000),
-                                                                   seed_value);
-            }
-            else
-            {
-                keys_input = test_utils::get_random_data<key_type>(
-                    size,
-                    test_utils::numeric_limits<key_type>::min(),
-                    test_utils::numeric_limits<key_type>::max(),
-                    seed_value);
-            }
+            std::vector<key_type> keys_input = test_utils::get_random_data<key_type>(
+                size,
+                test_utils::generate_limits<key_type>::min(),
+                test_utils::generate_limits<key_type>::max(),
+                seed_value);
 
             std::vector<offset_type> offsets;
             unsigned int             segments_count = 0;

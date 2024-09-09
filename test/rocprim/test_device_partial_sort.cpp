@@ -210,19 +210,12 @@ TYPED_TEST(RocprimDevicePartialSortTests, PartialSort)
                     HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
                 }
 
-                std::vector<key_type> input;
-                if(rocprim::is_floating_point<key_type>::value)
-                {
-                    input = test_utils::get_random_data<key_type>(size, -1000, 1000, seed_value);
-                }
-                else
-                {
-                    input = test_utils::get_random_data<key_type>(
-                        size,
-                        test_utils::numeric_limits<key_type>::min(),
-                        test_utils::numeric_limits<key_type>::max(),
-                        seed_value);
-                }
+                std::vector<key_type> input = test_utils::get_random_data<key_type>(
+                    size,
+                    test_utils::generate_limits<key_type>::min(),
+                    test_utils::generate_limits<key_type>::max(),
+                    seed_value);
+
                 key_type* d_input;
                 HIP_CHECK(test_common_utils::hipMallocHelper(&d_input, size * sizeof(key_type)));
                 HIP_CHECK(hipMemcpy(d_input,
@@ -415,27 +408,16 @@ TYPED_TEST(RocprimDevicePartialSortTests, PartialSortCopy)
                     HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
                 }
 
-                std::vector<key_type> input;
-                std::vector<key_type> output_original;
-                if(rocprim::is_floating_point<key_type>::value)
-                {
-                    input = test_utils::get_random_data<key_type>(size, -1000, 1000, seed_value);
-                    output_original
-                        = test_utils::get_random_data<key_type>(size, -1000, 1000, seed_value + 1);
-                }
-                else
-                {
-                    input = test_utils::get_random_data<key_type>(
-                        size,
-                        test_utils::numeric_limits<key_type>::min(),
-                        test_utils::numeric_limits<key_type>::max(),
-                        seed_value);
-                    output_original = test_utils::get_random_data<key_type>(
-                        size,
-                        test_utils::numeric_limits<key_type>::min(),
-                        test_utils::numeric_limits<key_type>::max(),
-                        seed_value + 1);
-                }
+                std::vector<key_type> input = test_utils::get_random_data<key_type>(
+                    size,
+                    test_utils::generate_limits<key_type>::min(),
+                    test_utils::generate_limits<key_type>::max(),
+                    seed_value);
+                std::vector<key_type> output_original = test_utils::get_random_data<key_type>(
+                    size,
+                    test_utils::generate_limits<key_type>::min(),
+                    test_utils::generate_limits<key_type>::max(),
+                    seed_value + 1);
 
                 key_type* d_input;
                 HIP_CHECK(test_common_utils::hipMallocHelper(&d_input, size * sizeof(key_type)));

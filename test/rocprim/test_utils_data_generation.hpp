@@ -118,6 +118,48 @@ public:
 };
 // End of extended numeric_limits
 
+template<class T, class enable = void>
+struct generate_limits
+{
+    static inline T min()
+    {
+        return rocprim::numeric_limits<T>::min();
+    }
+    static inline T max()
+    {
+        return rocprim::numeric_limits<T>::max();
+    }
+};
+
+template<class T>
+struct generate_limits<
+    T,
+    std::enable_if_t<is_custom_test_array_type<T>::value || is_custom_test_type<T>::value>>
+{
+    using Type = typename T::value_type;
+    static inline Type min()
+    {
+        return generate_limits<Type>::min();
+    }
+    static inline Type max()
+    {
+        return generate_limits<Type>::max();
+    }
+};
+
+template<class T>
+struct generate_limits<T, std::enable_if_t<rocprim::is_floating_point<T>::value>>
+{
+    static inline T min()
+    {
+        return T(-1000);
+    }
+    static inline T max()
+    {
+        return T(1000);
+    }
+};
+
 // Converts possible device side types to their relevant host side native types
 inline rocprim::native_half convert_to_native(const rocprim::half& value)
 {
