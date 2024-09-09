@@ -28,3 +28,4 @@
    * :ref:`dev-partial_sort`
    * :ref:`dev-find_first_of`
    * :ref:`dev-find_end`
+   * :ref:`dev-search`

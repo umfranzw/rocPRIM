@@ -355,7 +355,7 @@ hipError_t search_impl(void*          temporary_storage,
     size_t* tmp_output = reinterpret_cast<size_t*>(temporary_storage);
 
     start_timer();
-    set_output_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
+    set_output_kernel<<<1, 1, 0, stream>>>(tmp_output, find_first && keys_size <= 0 ? 0 : size);
     ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_output_kernel", 1, start);
 
     if(size > 0 && keys_size > 0)

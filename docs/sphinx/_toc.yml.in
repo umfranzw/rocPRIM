@@ -39,6 +39,7 @@ subtrees:
           - file: device_ops/memcpy.rst
           - file: device_ops/find_first_of.rst
           - file: device_ops/find_end.rst
+          - file: device_ops/search.rst
       - file: block_ops/index.rst
         subtrees:
         - entries: 
