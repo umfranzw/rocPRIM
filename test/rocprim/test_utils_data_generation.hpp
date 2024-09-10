@@ -58,7 +58,7 @@ struct is_valid_for_int_distribution :
 namespace detail
 {
 template<class T>
-struct numeric_limits_custom_test_type : public std::numeric_limits<typename T::value_type>
+struct numeric_limits_custom_test_type : public rocprim::numeric_limits<typename T::value_type>
 {};
 } // namespace detail
 
