@@ -42,8 +42,22 @@ namespace detail
         }                                                                                        \
     }                                                                                            \
     while(0)
+#endif  // ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
+
+#ifndef RETURN_ON_ERROR
+#define RETURN_ON_ERROR(...)              \
+    do                                    \
+    {                                     \
+        hipError_t error = (__VA_ARGS__); \
+        if(error != hipSuccess)           \
+        {                                 \
+            return error;                 \
+        }                                 \
+    }                                     \
+    while(0)
+#endif // RETURN_ON_ERROR
 
 } // end detail namespace
 
-#endif  // ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
+
 #endif  // ROCPRIM_COMMON_HPP_

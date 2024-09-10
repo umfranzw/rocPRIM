@@ -47,16 +47,6 @@ BEGIN_ROCPRIM_NAMESPACE
 namespace detail
 {
 
-#define RETURN_ON_ERROR(...)              \
-    do                                    \
-    {                                     \
-        hipError_t error = (__VA_ARGS__); \
-        if(error != hipSuccess)           \
-        {                                 \
-            return error;                 \
-        }                                 \
-    }                                     \
-    while(0)
 
 template<bool inplace>
 struct partial_sort_nth_element_helper
@@ -543,8 +533,6 @@ hipError_t partial_sort(void*          temporary_storage,
 
 /// @}
 // end of group devicemodule
-
-#undef RETURN_ON_ERROR
 
 END_ROCPRIM_NAMESPACE
 

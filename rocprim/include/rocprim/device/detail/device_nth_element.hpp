@@ -49,18 +49,6 @@ BEGIN_ROCPRIM_NAMESPACE
 
 namespace detail
 {
-
-#define RETURN_ON_ERROR(...)              \
-    do                                    \
-    {                                     \
-        hipError_t error = (__VA_ARGS__); \
-        if(error != hipSuccess)           \
-        {                                 \
-            return error;                 \
-        }                                 \
-    }                                     \
-    while(0)
-
 struct nth_element_onesweep_lookback_state
 {
     // The two most significant bits are used to indicate the status of the prefix - leaving the other 30 bits for the
@@ -751,7 +739,6 @@ ROCPRIM_INLINE hipError_t
 }
 
 
-#undef RETURN_ON_ERROR
 
 } // namespace detail
 
