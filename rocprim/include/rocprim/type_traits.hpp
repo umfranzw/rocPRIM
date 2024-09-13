@@ -142,11 +142,12 @@ struct is_compound
         !is_fundamental<T>::value
     > {};
 
-/// \brief Behaves like std::numeric_limits, but also supports __int128_t and __uint128_t.
+/// \brief Extension of `std::numeric_limits`, which includes support for 128-bit integers.
 template<class T>
 struct numeric_limits : std::numeric_limits<T>
 {};
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // skip specialized versions
 template<>
 struct numeric_limits<__uint128_t> : std::numeric_limits<unsigned int>
 {
@@ -190,6 +191,8 @@ struct numeric_limits<__int128_t> : std::numeric_limits<int>
         return min();
     }
 };
+
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 /// \brief Used to retrieve a type that can be treated as unsigned version of the template parameter.
 /// \tparam T - The signed type to find an unsigned equivalent for.
