@@ -42,8 +42,8 @@ template<unsigned int StartBit,
          unsigned int EndBit,
          class Key,
          std::enable_if_t<(rocprim::is_integral<Key>::value && !std::is_same<Key, bool>::value)
-                              || std::is_same<Key, __uint128_t>::value
-                              || std::is_same<Key, __int128_t>::value,
+                              || std::is_same<Key, rocprim::uint128_t>::value
+                              || std::is_same<Key, rocprim::int128_t>::value,
                           int>
          = 0>
 auto to_bits(const Key key) -> typename rocprim::get_unsigned_bits_type<Key>::unsigned_type
@@ -137,7 +137,7 @@ auto to_bits(const Key& key) -> typename rocprim::get_unsigned_bits_type<Key>::u
     // For two doubles, we need uint128, but that is not part of rocprim::get_unsigned_bits_type
     using result_bits_type = std::conditional_t<
         sizeof(inner_t) == 8,
-        __uint128_t,
+        rocprim::uint128_t,
         typename rocprim::get_unsigned_bits_type<void,
                                                  rocprim::min(static_cast<size_t>(8),
                                                               sizeof(inner_t) * 2)>::unsigned_type>;

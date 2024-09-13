@@ -17,6 +17,7 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 * Added a parallel device-level function, `rocprim::adjacent_find`, similar to the C++ Standard Library `std::adjacent_find` algorithm.
 * Added configuration autotuning to device adjacent find (`rocprim::adjacent_find`) for improved performance on selected architectures.
 * Added rocprim::numeric_limits which is an extension of `std::numeric_limits`, which includes support for 128-bit integers.
+* Added rocprim::int128_t and rocprim::uint128_t which are the __int128_t and __uint128_t types.
 
 ### Changed
 

@@ -52,8 +52,8 @@ struct is_integral
     : std::integral_constant<
           bool,
           std::is_integral<T>::value
-              || std::is_same<__int128_t, typename std::remove_cv<T>::type>::value
-              || std::is_same<__uint128_t, typename std::remove_cv<T>::type>::value>
+              || std::is_same<::rocprim::int128_t, typename std::remove_cv<T>::type>::value
+              || std::is_same<::rocprim::uint128_t, typename std::remove_cv<T>::type>::value>
 {};
 
 /// \brief Extension of `std::is_arithmetic`, which includes support for \ref rocprim::half , \ref rocprim::bfloat16 and 128-bit integers.
@@ -64,8 +64,8 @@ struct is_arithmetic
           std::is_arithmetic<T>::value
               || std::is_same<::rocprim::half, typename std::remove_cv<T>::type>::value
               || std::is_same<::rocprim::bfloat16, typename std::remove_cv<T>::type>::value
-              || std::is_same<__int128_t, typename std::remove_cv<T>::type>::value
-              || std::is_same<__uint128_t, typename std::remove_cv<T>::type>::value>
+              || std::is_same<::rocprim::int128_t, typename std::remove_cv<T>::type>::value
+              || std::is_same<::rocprim::uint128_t, typename std::remove_cv<T>::type>::value>
 {};
 
 /// \brief Extension of `std::is_fundamental`, which includes support for \ref rocprim::half , \ref rocprim::bfloat16 and 128-bit integers.
@@ -76,8 +76,8 @@ struct is_fundamental
           std::is_fundamental<T>::value
               || std::is_same<::rocprim::half, typename std::remove_cv<T>::type>::value
               || std::is_same<::rocprim::bfloat16, typename std::remove_cv<T>::type>::value
-              || std::is_same<__int128_t, typename std::remove_cv<T>::type>::value
-              || std::is_same<__uint128_t, typename std::remove_cv<T>::type>::value>
+              || std::is_same<::rocprim::int128_t, typename std::remove_cv<T>::type>::value
+              || std::is_same<::rocprim::uint128_t, typename std::remove_cv<T>::type>::value>
 {};
 
 /// \brief Extension of `std::is_unsigned`, which includes support for 128-bit integers.
@@ -86,7 +86,7 @@ struct is_unsigned
     : std::integral_constant<
           bool,
           std::is_unsigned<T>::value
-              || std::is_same<__uint128_t, typename std::remove_cv<T>::type>::value>
+              || std::is_same<::rocprim::uint128_t, typename std::remove_cv<T>::type>::value>
 {};
 
 /// \brief Extension of `std::is_signed`, which includes support for \ref rocprim::half , \ref rocprim::bfloat16 and 128-bit integers.
@@ -97,7 +97,7 @@ struct is_signed
           std::is_signed<T>::value
               || std::is_same<::rocprim::half, typename std::remove_cv<T>::type>::value
               || std::is_same<::rocprim::bfloat16, typename std::remove_cv<T>::type>::value
-              || std::is_same<__int128_t, typename std::remove_cv<T>::type>::value>
+              || std::is_same<::rocprim::int128_t, typename std::remove_cv<T>::type>::value>
 {};
 
 /// \brief Extension of `std::is_scalar`, which includes support for \ref rocprim::half , \ref rocprim::bfloat16 and 128-bit integers.
@@ -108,8 +108,8 @@ struct is_scalar
           std::is_scalar<T>::value
               || std::is_same<::rocprim::half, typename std::remove_cv<T>::type>::value
               || std::is_same<::rocprim::bfloat16, typename std::remove_cv<T>::type>::value
-              || std::is_same<__int128_t, typename std::remove_cv<T>::type>::value
-              || std::is_same<__uint128_t, typename std::remove_cv<T>::type>::value>
+              || std::is_same<::rocprim::int128_t, typename std::remove_cv<T>::type>::value
+              || std::is_same<::rocprim::uint128_t, typename std::remove_cv<T>::type>::value>
 {};
 
 /// \brief Extension of `std::make_unsigned`, which includes support for 128-bit integers.
@@ -119,20 +119,20 @@ struct make_unsigned : std::make_unsigned<T>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // skip specialized versions
 template<>
-struct make_unsigned<__int128_t>
+struct make_unsigned<::rocprim::int128_t>
 {
-    using type = __uint128_t;
+    using type = ::rocprim::uint128_t;
 };
 
 template<>
-struct make_unsigned<__uint128_t>
+struct make_unsigned<::rocprim::uint128_t>
 {
-    using type = __uint128_t;
+    using type = ::rocprim::uint128_t;
 };
 #endif
 
-static_assert(std::is_same<make_unsigned<__int128_t>::type, __uint128_t>::value,
-              "'__int128_t' needs to implement 'make_unsigned' trait.");
+static_assert(std::is_same<make_unsigned<::rocprim::int128_t>::type, ::rocprim::uint128_t>::value,
+              "'rocprim::int128_t' needs to implement 'make_unsigned' trait.");
 
 /// \brief Extension of `std::is_compound`, which includes support for \ref rocprim::half , \ref rocprim::bfloat16 and 128-bit integers.
 template<class T>
@@ -149,44 +149,44 @@ struct numeric_limits : std::numeric_limits<T>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // skip specialized versions
 template<>
-struct numeric_limits<__uint128_t> : std::numeric_limits<unsigned int>
+struct numeric_limits<rocprim::uint128_t> : std::numeric_limits<unsigned int>
 {
     static constexpr int digits   = 128;
     static constexpr int digits10 = 38;
 
-    static constexpr __uint128_t max()
+    static constexpr rocprim::uint128_t max()
     {
-        return __int128_t{-1};
+        return rocprim::int128_t{-1};
     }
 
-    static constexpr __uint128_t min()
+    static constexpr rocprim::uint128_t min()
     {
-        return __uint128_t{0};
+        return rocprim::uint128_t{0};
     }
 
-    static constexpr __uint128_t lowest()
+    static constexpr rocprim::uint128_t lowest()
     {
         return min();
     }
 };
 
 template<>
-struct numeric_limits<__int128_t> : std::numeric_limits<int>
+struct numeric_limits<rocprim::int128_t> : std::numeric_limits<int>
 {
     static constexpr int digits   = 127;
     static constexpr int digits10 = 38;
 
-    static constexpr __int128_t max()
+    static constexpr rocprim::int128_t max()
     {
-        return numeric_limits<__uint128_t>::max() >> 1;
+        return numeric_limits<rocprim::uint128_t>::max() >> 1;
     }
 
-    static constexpr __int128_t min()
+    static constexpr rocprim::int128_t min()
     {
-        return -numeric_limits<__int128_t>::max() - 1;
+        return -numeric_limits<rocprim::int128_t>::max() - 1;
     }
 
-    static constexpr __int128_t lowest()
+    static constexpr rocprim::int128_t lowest()
     {
         return min();
     }
@@ -233,7 +233,7 @@ struct get_unsigned_bits_type<T,8>
 template<typename T>
 struct get_unsigned_bits_type<T, 16>
 {
-    typedef __uint128_t unsigned_type;
+    typedef ::rocprim::uint128_t unsigned_type;
 };
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 

@@ -62,6 +62,11 @@ struct empty_type {};
 struct identity_decomposer
 {};
 
+/// \brief 128 bit unsigned integer
+using uint128_t = __uint128_t;
+/// \brief 128 bit signed integer
+using int128_t = __int128_t;
+
 /// \brief Half-precision floating point type
 using half = ::__half;
 /// \brief bfloat16 floating point type
