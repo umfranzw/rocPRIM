@@ -23,7 +23,7 @@
 
 #include "config_types.hpp"
 
-// #include "detail/config/device_adjacent_find.hpp" TODO: include this when tuned
+#include "detail/config/device_adjacent_find.hpp"
 #include "detail/device_config_helper.hpp"
 
 /// \addtogroup primitivesmodule_deviceconfigs
@@ -67,9 +67,8 @@ struct wrapped_adjacent_find_impl<Type, std::enable_if_t<rocprim::is_arithmetic<
     template<target_arch Arch>
     struct architecture_config
     {
-        static constexpr adjacent_find_config_params params =
-            typename default_adjacent_find_config_base<Type>::type{};
-        // = default_adjacent_find_config<static_cast<unsigned int>(Arch), Type>(); TODO: use this when tuned
+        static constexpr adjacent_find_config_params params
+            = default_adjacent_find_config<static_cast<unsigned int>(Arch), Type>();
     };
 };
 
