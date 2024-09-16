@@ -1192,6 +1192,30 @@ struct search_config : public detail::search_config_params
 
 namespace detail
 {
+struct search_n_config_params
+{
+    kernel_config_params kernel_config{};
+};
+} // namespace detail
+
+/// \brief Configuration of device-level find_first_of
+///
+/// \tparam BlockSize number of threads in a block.
+/// \tparam ItemsPerThread number of items processed by each thread.
+template<unsigned int BlockSize, unsigned int ItemsPerThread>
+struct search_n_config : public detail::search_n_config_params
+{
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+    constexpr search_n_config()
+        : detail::search_n_config_params{
+            {BlockSize, ItemsPerThread, 0}
+    }
+    {}
+#endif
+};
+
+namespace detail
+{
 
 struct merge_config_params
 {
