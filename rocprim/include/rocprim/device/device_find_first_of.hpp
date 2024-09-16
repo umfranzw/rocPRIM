@@ -267,8 +267,6 @@ hipError_t find_first_of_impl(void*          temporary_storage,
     return transform(tmp_output, output, 1, ::rocprim::identity<void>(), stream, debug_synchronous);
 }
 
-#undef ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
-
 } // namespace detail
 
 /// \addtogroup devicemodule

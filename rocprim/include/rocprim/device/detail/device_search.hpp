@@ -23,6 +23,7 @@
 
 #include "../../detail/temp_storage.hpp"
 
+#include "../../common.hpp"
 #include "../../config.hpp"
 
 #include "../../intrinsics.hpp"
@@ -41,36 +42,6 @@ BEGIN_ROCPRIM_NAMESPACE
 
 namespace detail
 {
-
-#define ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(name, size, start)                           \
-    do                                                                                           \
-    {                                                                                            \
-        hipError_t _error = hipGetLastError();                                                   \
-        if(_error != hipSuccess)                                                                 \
-            return _error;                                                                       \
-        if(debug_synchronous)                                                                    \
-        {                                                                                        \
-            std::cout << name << "(" << size << ")";                                             \
-            hipError_t __error = hipStreamSynchronize(stream);                                   \
-            if(__error != hipSuccess)                                                            \
-                return __error;                                                                  \
-            auto _end = std::chrono::steady_clock::now();                                        \
-            auto _d   = std::chrono::duration_cast<std::chrono::duration<double>>(_end - start); \
-            std::cout << " " << _d.count() * 1000 << " ms" << '\n';                              \
-        }                                                                                        \
-    }                                                                                            \
-    while(0)
-
-#define RETURN_ON_ERROR(...)              \
-    do                                    \
-    {                                     \
-        hipError_t error = (__VA_ARGS__); \
-        if(error != hipSuccess)           \
-        {                                 \
-            return error;                 \
-        }                                 \
-    }                                     \
-    while(0)
 
 template<class Config, class InputIterator1, class InputIterator2, class BinaryFunction>
 ROCPRIM_DEVICE
@@ -461,9 +432,6 @@ hipError_t search_impl(void*          temporary_storage,
 
     return hipSuccess;
 }
-
-#undef ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
-#undef RETURN_ON_ERROR
 
 } // namespace detail
 
