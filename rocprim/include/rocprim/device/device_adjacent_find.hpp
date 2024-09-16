@@ -27,6 +27,7 @@
 #include "device_reduce.hpp"
 #include "device_transform.hpp"
 
+#include "../common.hpp"
 #include "../functional.hpp"
 #include "../iterator/counting_iterator.hpp"
 #include "../iterator/transform_iterator.hpp"
@@ -41,34 +42,6 @@ BEGIN_ROCPRIM_NAMESPACE
 
 namespace detail
 {
-    #define ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(name, size, start)                           \
-        {                                                                                            \
-            auto _error = hipGetLastError();                                                         \
-            if(_error != hipSuccess)                                                                 \
-                return _error;                                                                       \
-            if(debug_synchronous)                                                                    \
-            {                                                                                        \
-                std::cout << name << "(" << size << ")";                                             \
-                auto __error = hipStreamSynchronize(stream);                                         \
-                if(__error != hipSuccess)                                                            \
-                    return __error;                                                                  \
-                auto _end = std::chrono::high_resolution_clock::now();                               \
-                auto _d   = std::chrono::duration_cast<std::chrono::duration<double>>(_end - start); \
-                std::cout << " " << _d.count() * 1000 << " ms" << '\n';                              \
-            }                                                                                        \
-        }
-
-    #define RETURN_ON_ERROR(...)              \
-        do                                    \
-        {                                     \
-            hipError_t error = (__VA_ARGS__); \
-            if(error != hipSuccess)           \
-            {                                 \
-                return error;                 \
-            }                                 \
-        }                                     \
-        while(0)
-
 template<typename Config = default_config,
          typename InputIterator,
          typename OutputIterator,
@@ -115,10 +88,10 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
         return result;
     }
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> start;
+    std::chrono::steady_clock::time_point start;
     if(debug_synchronous)
     {
-        start = std::chrono::high_resolution_clock::now();
+        start = std::chrono::steady_clock::now();
     }
 
     // Launch adjacent_find::init_adjacent_find
@@ -176,7 +149,7 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
 
         if(debug_synchronous)
         {
-            start = std::chrono::high_resolution_clock::now();
+            start = std::chrono::steady_clock::now();
         }
 
         // Launch adjacent_find::block_reduce_kernel
@@ -203,8 +176,6 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
 }
 
 } // namespace detail
-
-    #undef ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
 
 #endif // DOXYGEN_DOCUMENTATION_BUILD
 
