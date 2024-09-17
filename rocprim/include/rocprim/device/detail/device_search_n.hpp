@@ -41,9 +41,9 @@ namespace detail
 {
 
 ROCPRIM_KERNEL
-void init_search_n_kernel(size_t* output, size_t size)
+void set_search_n_kernel(size_t* output, size_t target)
 {
-    *output = size;
+    *output = target;
 }
 
 template<class Config, class InputIterator, class BinaryFunction>
@@ -66,20 +66,26 @@ void search_n_kernel_impl(InputIterator                                         
     const unsigned int     t_id             = threadIdx.x;
 
     size_t cur_start_idx = (b_id * items_per_block) + (items_per_thread * t_id);
-    size_t cur_output    = atomic_load(output);
     size_t tar_count     = count;
-
+    size_t max_index     = 0;
     for(size_t i = cur_start_idx; i < cur_start_idx + items_per_thread && i < size; i++)
     {
-        if(i < cur_output && i + tar_count <= size)
+    inside_loop:
+        size_t started_from = i - (count - tar_count);
+        if(started_from < atomic_load(output) && i + tar_count <= size)
         {
             if(compare_function(*(input + i), *value))
             {
                 tar_count--;
                 if(tar_count == 0)
                 {
-                    cur_output = i - (count - 1);
+                    atomic_min(output, started_from);
                     break;
+                }
+                else
+                {
+                    i++;
+                    goto inside_loop;
                 }
             }
             else
@@ -88,10 +94,10 @@ void search_n_kernel_impl(InputIterator                                         
             }
         }
         else
+        {
             break;
+        }
     }
-
-    atomic_min(output, cur_output);
 }
 
 template<class Config, class InputIterator, class BinaryFunction>
@@ -131,6 +137,8 @@ hipError_t search_n_impl(void*          temporary_storage,
     const unsigned int block_size       = params.kernel_config.block_size;
     const unsigned int items_per_thread = params.kernel_config.items_per_thread;
     const unsigned int items_per_block  = block_size * items_per_thread;
+    size_t*            tmp_output       = reinterpret_cast<size_t*>(temporary_storage);
+    const unsigned int num_blocks       = ceiling_div(size, items_per_block);
 
     // Start point for time measurements
     std::chrono::steady_clock::time_point start;
@@ -157,12 +165,30 @@ hipError_t search_n_impl(void*          temporary_storage,
     if(count == 0)
     {
         // return begin
+        start_timer();
+        set_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, 0);
+        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", 1, start);
+        RETURN_ON_ERROR(transform(tmp_output,
+                                  output,
+                                  1,
+                                  rocprim::identity<output_type>(),
+                                  stream,
+                                  debug_synchronous));
         return hipSuccess;
     }
 
     if(size == 0)
     {
         // return end
+        start_timer();
+        set_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
+        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", 1, start);
+        RETURN_ON_ERROR(transform(tmp_output,
+                                  output,
+                                  1,
+                                  rocprim::identity<output_type>(),
+                                  stream,
+                                  debug_synchronous));
         return hipSuccess;
     }
 
@@ -171,13 +197,9 @@ hipError_t search_n_impl(void*          temporary_storage,
         return hipErrorInvalidValue;
     }
 
-    size_t*            tmp_output = reinterpret_cast<size_t*>(temporary_storage);
-    const unsigned int num_blocks = ceiling_div(size, items_per_block);
-
     start_timer();
-
-    init_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
-    ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("init_search_n_kernel", 1, start);
+    set_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
+    ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", 1, start);
 
     search_n_kernel<config><<<num_blocks, block_size, 0, stream>>>(input,
                                                                    tmp_output,
