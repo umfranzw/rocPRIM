@@ -266,6 +266,7 @@ add_rocprim_test_parallel("rocprim.device_segmented_radix_sort" test_device_segm
 add_rocprim_test("rocprim.device_segmented_reduce" test_device_segmented_reduce.cpp)
 add_rocprim_test("rocprim.device_segmented_scan" test_device_segmented_scan.cpp)
 add_rocprim_test("rocprim.device_select" test_device_select.cpp)
+add_rocprim_test("rocprim.device_search_n" test_device_search_n.cpp)
 add_rocprim_test("rocprim.device_transform" test_device_transform.cpp)
 add_rocprim_test("rocprim.discard_iterator" test_discard_iterator.cpp)
 add_rocprim_test("rocprim.lookback_reproducibility" test_lookback_reproducibility.cpp)
