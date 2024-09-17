@@ -94,10 +94,13 @@ struct device_select_flag_benchmark : public config_autotune_interface
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              hipStream_t         stream) const override
     {
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(DataType);
+
         std::vector<DataType> input = get_random_data<DataType>(size,
                                                                 generate_limits<DataType>::min(),
                                                                 generate_limits<DataType>::max(),
@@ -237,10 +240,13 @@ struct device_select_predicate_benchmark : public config_autotune_interface
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              hipStream_t         stream) const override
     {
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(DataType);
+
         // all data types can represent [0, 127], -1 so a predicate can select all
         std::vector<DataType> input = get_random_data<DataType>(size,
                                                                 static_cast<DataType>(0),
@@ -364,10 +370,13 @@ struct device_select_unique_benchmark : public config_autotune_interface
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              hipStream_t         stream) const override
     {
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(DataType);
+
         std::vector<DataType> input_0;
         std::vector<DataType> input_1;
         std::vector<DataType> input_2;
@@ -499,10 +508,13 @@ struct device_select_unique_by_key_benchmark : public config_autotune_interface
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              hipStream_t         stream) const override
     {
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(KeyType);
+
         std::vector<KeyType> input_keys_0;
         std::vector<KeyType> input_keys_1;
         std::vector<KeyType> input_keys_2;

@@ -80,12 +80,15 @@ struct device_merge_sort_block_merge_benchmark : public config_autotune_interfac
     // keys benchmark
     template<typename val = Value>
     auto do_run(benchmark::State&   state,
-                size_t              size,
+                size_t              bytes,
                 const managed_seed& seed,
                 hipStream_t         stream) const ->
         typename std::enable_if<std::is_same<val, ::rocprim::empty_type>::value, void>::type
     {
         using key_type = Key;
+
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(key_type);
 
         // Generate data
         std::vector<key_type> keys_input
@@ -212,13 +215,16 @@ struct device_merge_sort_block_merge_benchmark : public config_autotune_interfac
     // pairs benchmark
     template<typename val = Value>
     auto do_run(benchmark::State&   state,
-                size_t              size,
+                size_t              bytes,
                 const managed_seed& seed,
                 hipStream_t         stream) const ->
         typename std::enable_if<!std::is_same<val, ::rocprim::empty_type>::value, void>::type
     {
         using key_type   = Key;
         using value_type = Value;
+
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(key_type);
 
         // Generate data
         std::vector<key_type> keys_input
@@ -364,11 +370,11 @@ struct device_merge_sort_block_merge_benchmark : public config_autotune_interfac
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              hipStream_t         stream) const override
     {
-        do_run(state, size, seed, stream);
+        do_run(state, bytes, seed, stream);
     }
 };
 

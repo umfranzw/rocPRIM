@@ -41,8 +41,8 @@
 #include <cstdio>
 #include <cstdlib>
 
-#ifndef DEFAULT_N
-const size_t DEFAULT_N = 1024 * 1024 * 32;
+#ifndef DEFAULT_BYTES
+const size_t DEFAULT_BYTES = 1024 * 1024 * 32 * 4;
 #endif
 
 namespace rp = rocprim;
@@ -52,13 +52,16 @@ const unsigned int warmup_size = 5;
 
 template<class Key>
 void run_merge_keys_benchmark(benchmark::State&   state,
-                              size_t              size,
+                              size_t              bytes,
                               const managed_seed& seed,
                               hipStream_t         stream)
 {
     using key_type = Key;
     using compare_op_type = typename std::conditional<std::is_same<key_type, rocprim::half>::value, half_less, rocprim::less<key_type>>::type;
 
+    // Calculate the number of elements 
+    size_t size = bytes / sizeof(key_type);
+    
     const size_t size1 = size / 2;
     const size_t size2 = size - size1;
 
@@ -165,13 +168,16 @@ void run_merge_keys_benchmark(benchmark::State&   state,
 
 template<class Key, class Value>
 void run_merge_pairs_benchmark(benchmark::State&   state,
-                               size_t              size,
+                               size_t              bytes,
                                const managed_seed& seed,
                                hipStream_t         stream)
 {
     using key_type = Key;
     using value_type = Value;
     using compare_op_type = typename std::conditional<std::is_same<key_type, rocprim::half>::value, half_less, rocprim::less<key_type>>::type;
+
+    // Calculate the number of elements 
+    size_t size = bytes / sizeof(key_type);
 
     const size_t size1 = size / 2;
     const size_t size2 = size - size1;
@@ -301,7 +307,7 @@ void run_merge_pairs_benchmark(benchmark::State&   state,
         bench_naming::format_name("{lvl:device,algo:merge,key_type:" #Key ",cfg:default_config}") \
             .c_str(),                                                                             \
         [=](benchmark::State& state)                                                              \
-        { run_merge_keys_benchmark<Key>(state, size, seed, stream); })
+        { run_merge_keys_benchmark<Key>(state, bytes, seed, stream); })
 
 #define CREATE_MERGE_PAIRS_BENCHMARK(Key, Value)                                                \
     benchmark::RegisterBenchmark(                                                               \
@@ -309,12 +315,12 @@ void run_merge_pairs_benchmark(benchmark::State&   state,
                                   ",cfg:default_config}")                                       \
             .c_str(),                                                                           \
         [=](benchmark::State& state)                                                            \
-        { run_merge_pairs_benchmark<Key, Value>(state, size, seed, stream); })
+        { run_merge_pairs_benchmark<Key, Value>(state, bytes, seed, stream); })
 
 int main(int argc, char *argv[])
 {
     cli::Parser parser(argc, argv);
-    parser.set_optional<size_t>("size", "size", DEFAULT_N, "number of values");
+    parser.set_optional<size_t>("size", "size", DEFAULT_BYTES, "number of bytes");
     parser.set_optional<int>("trials", "trials", -1, "number of iterations");
     parser.set_optional<std::string>("name_format",
                                      "name_format",
@@ -325,7 +331,7 @@ int main(int argc, char *argv[])
 
     // Parse argv
     benchmark::Initialize(&argc, argv);
-    const size_t size = parser.get<size_t>("size");
+    const size_t bytes = parser.get<size_t>("size");
     const int trials = parser.get<int>("trials");
     bench_naming::set_format(parser.get<std::string>("name_format"));
     const std::string  seed_type = parser.get<std::string>("seed");
@@ -336,7 +342,7 @@ int main(int argc, char *argv[])
 
     // Benchmark info
     add_common_benchmark_info();
-    benchmark::AddCustomContext("size", std::to_string(size));
+    benchmark::AddCustomContext("bytes", std::to_string(bytes));
     benchmark::AddCustomContext("seed", seed_type);
 
     using custom_int2 = custom_type<int, int>;

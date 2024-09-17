@@ -131,10 +131,13 @@ struct device_partition_flag_benchmark : public config_autotune_interface
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              const hipStream_t   stream) const override
     {
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(DataType);
+
         std::vector<DataType> input = get_random_data<DataType>(size,
                                                                 generate_limits<DataType>::min(),
                                                                 generate_limits<DataType>::max(),
@@ -274,10 +277,13 @@ struct device_partition_predicate_benchmark : public config_autotune_interface
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              const hipStream_t   stream) const override
     {
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(DataType);
+
         // all data types can represent [0, 127], -1 so a predicate can select all
         std::vector<DataType> input = get_random_data<DataType>(size,
                                                                 static_cast<DataType>(0),
@@ -386,10 +392,13 @@ struct device_partition_two_way_flag_benchmark : public config_autotune_interfac
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              const hipStream_t   stream) const override
     {
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(DataType);
+        
         std::vector<DataType> input = get_random_data<DataType>(size,
                                                                 generate_limits<DataType>::min(),
                                                                 generate_limits<DataType>::max(),
@@ -534,10 +543,13 @@ struct device_partition_two_way_predicate_benchmark : public config_autotune_int
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              const hipStream_t   stream) const override
     {
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(DataType);
+
         // all data types can represent [0, 127], -1 so a predicate can select all
         std::vector<DataType> input = get_random_data<DataType>(size,
                                                                 static_cast<DataType>(0),
@@ -648,10 +660,13 @@ struct device_partition_three_way_benchmark : public config_autotune_interface
     }
 
     void run(benchmark::State&   state,
-             size_t              size,
+             size_t              bytes,
              const managed_seed& seed,
              const hipStream_t   stream) const override
     {
+        // Calculate the number of elements 
+        size_t size = bytes / sizeof(DataType);
+
         // all data types can represent [0, 127], -1 so a predicate can select all
         std::vector<DataType> input = get_random_data<DataType>(size,
                                                                 static_cast<DataType>(0),
