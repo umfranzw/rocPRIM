@@ -162,26 +162,11 @@ hipError_t search_n_impl(void*          temporary_storage,
         return hipErrorInvalidValue;
     }
 
-    if(count == 0)
-    {
-        // return begin
-        start_timer();
-        set_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, 0);
-        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", 1, start);
-        RETURN_ON_ERROR(transform(tmp_output,
-                                  output,
-                                  1,
-                                  rocprim::identity<output_type>(),
-                                  stream,
-                                  debug_synchronous));
-        return hipSuccess;
-    }
-
-    if(size == 0)
+    if(size == 0 || count == 0)
     {
         // return end
         start_timer();
-        set_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
+        set_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, count == 0 ? 0 : size);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", 1, start);
         RETURN_ON_ERROR(transform(tmp_output,
                                   output,
@@ -190,11 +175,6 @@ hipError_t search_n_impl(void*          temporary_storage,
                                   stream,
                                   debug_synchronous));
         return hipSuccess;
-    }
-
-    if(size < 0 && count < 0)
-    {
-        return hipErrorInvalidValue;
     }
 
     start_timer();

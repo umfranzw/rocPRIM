@@ -28,7 +28,7 @@
 #include <time.h>
 
 template<class InputIterator,
-         class OutputIterator     = std::size_t,
+         class OutputIterator     = size_t,
          class BinaryFunction     = rocprim::equal_to<InputIterator>,
          class Config             = rocprim::default_config,
          bool UseGraphs           = false,
@@ -78,22 +78,17 @@ using RocprimDeviceSearchNTestsParams = ::testing::Types<
     DeviceSearchNParams<custom_int64_array>,
     // Tests for supported config structs
     DeviceSearchNParams<rocprim::bfloat16,
-                        std::size_t,
+                        size_t,
                         rocprim::equal_to<rocprim::bfloat16>,
                         custom_config_0>,
     // Tests for hipGraph support
     DeviceSearchNParams<unsigned int,
-                        std::size_t,
+                        size_t,
                         rocprim::equal_to<unsigned int>,
                         rocprim::default_config,
                         true>,
     // Tests for when output's value_type is void
-    DeviceSearchNParams<int,
-                        std::size_t,
-                        rocprim::equal_to<int>,
-                        rocprim::default_config,
-                        false,
-                        true>>;
+    DeviceSearchNParams<int, size_t, rocprim::equal_to<int>, rocprim::default_config, false, true>>;
 
 TYPED_TEST_SUITE(RocprimDeviceSearchNTests, RocprimDeviceSearchNTestsParams);
 
@@ -112,7 +107,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, SearchN)
 
     op_type op{};
 
-    for(std::size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
+    for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
             = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
@@ -120,7 +115,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, SearchN)
         for(auto size : test_utils::get_sizes(seed_value))
         {
 
-            // size /= 100;
             hipStream_t             stream = 0; // default
             size_t                  count  = 0;
             hipGraph_t              graph;
@@ -141,10 +135,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, SearchN)
             }
 
             // Get random sequence item count
-            if(size > 1)
-            {
-                count = test_utils::get_random_value<std::size_t>(0, size, ++seed_value) / 100;
-            }
+            count = test_utils::get_random_value<size_t>(0, size, ++seed_value);
 
             h_value = test_utils::get_random_value<input_type>(
                 0,
@@ -173,17 +164,21 @@ TYPED_TEST(RocprimDeviceSearchNTests, SearchN)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            auto err = rocprim::search_n<config>(d_temp_storage,
-                                                 temp_storage_size,
-                                                 d_input,
-                                                 d_output,
-                                                 h_input.size(),
-                                                 count,
-                                                 d_value,
-                                                 op,
-                                                 stream,
-                                                 debug_synchronous);
-            HIP_CHECK(err);
+            HIP_CHECK(rocprim::search_n<config>(d_temp_storage,
+                                                temp_storage_size,
+                                                d_input,
+                                                d_output,
+                                                h_input.size(),
+                                                count,
+                                                d_value,
+                                                op,
+                                                stream,
+                                                debug_synchronous));
+
+            if(TestFixture::use_graphs)
+            {
+                HIP_CHECK(hipStreamSynchronize(stream));
+            }
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -197,6 +192,11 @@ TYPED_TEST(RocprimDeviceSearchNTests, SearchN)
             HIP_CHECK(hipFree(d_temp_storage));
             HIP_CHECK(hipFree(d_input));
             HIP_CHECK(hipFree(d_output));
+
+            if(TestFixture::use_graphs)
+            {
+                HIP_CHECK(hipStreamDestroy(stream));
+            }
 
             (void)graph;
             (void)graph_instance;
