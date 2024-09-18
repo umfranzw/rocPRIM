@@ -43,6 +43,10 @@
 #include <utility>
 #include <vector>
 
+using custom_int2            = custom_type<int>;
+using custom_double2         = custom_type<double>;
+using custom_longlong_double = custom_type<long long, double>;
+
 template<class InputType, class OutputType = size_t>
 void run_search_n_benchmark(benchmark::State&   state,
                             size_t              count,
@@ -161,15 +165,15 @@ void add_search_n_benchmarks(std::vector<benchmark::internal::Benchmark*>& bench
 {
     std::vector<benchmark::internal::Benchmark*> bs = {
         // Custom types
-        // CREATE_SEARCH_N_BENCHMARK(custom_int2),
-        // CREATE_SEARCH_N_BENCHMARK(custom_longlong_double),
+        CREATE_SEARCH_N_BENCHMARK(custom_int2),
+        CREATE_SEARCH_N_BENCHMARK(custom_longlong_double),
 
         // Tuned types
         CREATE_SEARCH_N_BENCHMARK(int8_t),
         CREATE_SEARCH_N_BENCHMARK(int16_t),
         CREATE_SEARCH_N_BENCHMARK(int32_t),
         CREATE_SEARCH_N_BENCHMARK(int64_t),
-        //  CREATE_SEARCH_N_BENCHMARK(rocprim::half),
+        CREATE_SEARCH_N_BENCHMARK(rocprim::half),
         CREATE_SEARCH_N_BENCHMARK(float),
         CREATE_SEARCH_N_BENCHMARK(double),
 

@@ -51,15 +51,13 @@ BEGIN_ROCPRIM_NAMESPACE
 /// * Streams in graph capture mode are supported
 ///
 /// \tparam Config [optional] configuration of the primitive. It has to be `search_config`.
-/// \tparam InputIterator1 [inferred] random-access iterator type of the input range. Must meet the
-///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
-/// \tparam InputIterator2 [inferred] random-access iterator type of the input range. Must meet the
+/// \tparam InputIterator [inferred] random-access iterator type of the input range. Must meet the
 ///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
 /// \tparam OutputIterator [inferred] random-access iterator type of the input range. Must meet the
 ///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
 /// \tparam BinaryFunction [inferred] Type of binary function that accepts a argument of the
-///   type `InputIterator1` and of the type `InputIterator1` returns a value convertible to bool.
-///   Default type is `rocprim::less<>.`
+///   type `InputIterator` and of the type `InputIterator` returns a value convertible to bool.
+///   Default type is `rocprim::equal_to<>.`
 ///
 /// \param [in] temporary_storage pointer to a device-accessible temporary storage. When
 ///   a null pointer is passed, the required allocation size (in bytes) is written to
