@@ -55,8 +55,6 @@ void search_n_kernel_impl(InputIterator                                         
                           typename std::iterator_traits<InputIterator>::value_type const* value,
                           BinaryFunction compare_function)
 {
-    using input_type = typename std::iterator_traits<InputIterator>::value_type;
-
     constexpr auto params = device_params<Config>();
 
     constexpr unsigned int block_size       = params.kernel_config.block_size;
