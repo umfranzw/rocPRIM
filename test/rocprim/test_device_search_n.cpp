@@ -180,7 +180,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, SearchN)
                                                  h_input.size(),
                                                  count,
                                                  d_value,
-                                                 op);
+                                                 op,
+                                                 stream,
+                                                 debug_synchronous);
+            HIP_CHECK(err);
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -194,6 +197,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, SearchN)
             HIP_CHECK(hipFree(d_temp_storage));
             HIP_CHECK(hipFree(d_input));
             HIP_CHECK(hipFree(d_output));
+
+            (void)graph;
+            (void)graph_instance;
+            (void)use_indirect_iterator;
         }
     }
 }

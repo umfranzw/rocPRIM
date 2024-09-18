@@ -93,7 +93,7 @@ hipError_t search_n(void*          temporary_storage,
                     size_t         count,
                     typename std::iterator_traits<InputIterator>::value_type const* value,
                     BinaryFunction compare_function  = BinaryFunction(),
-                    hipStream_t    stream            = 0,
+                    hipStream_t    stream            = static_cast<hipStream_t>(0),
                     bool           debug_synchronous = false)
 {
     return detail::search_n_impl<Config>(temporary_storage,

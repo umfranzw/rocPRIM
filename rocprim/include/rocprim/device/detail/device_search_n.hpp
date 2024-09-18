@@ -67,7 +67,7 @@ void search_n_kernel_impl(InputIterator                                         
 
     size_t cur_start_idx = (b_id * items_per_block) + (items_per_thread * t_id);
     size_t tar_count     = count;
-    size_t max_index     = 0;
+
     for(size_t i = cur_start_idx; i < cur_start_idx + items_per_thread && i < size; i++)
     {
     inside_loop:
