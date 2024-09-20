@@ -1198,7 +1198,7 @@ struct search_n_config_params
 };
 } // namespace detail
 
-/// \brief Configuration of device-level find_first_of
+/// \brief Configuration of device-level search_n
 ///
 /// \tparam BlockSize number of threads in a block.
 /// \tparam ItemsPerThread number of items processed by each thread.

@@ -52,7 +52,7 @@ struct wrapped_search_n_config<default_config, Type>
     };
 };
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
+#ifdef DOXYGEN_DOCUMENTATION_BUILD
 template<typename Config, typename Type>
 template<target_arch Arch>
 constexpr search_n_config_params
@@ -62,7 +62,7 @@ template<typename Type>
 template<target_arch Arch>
 constexpr search_n_config_params
     wrapped_search_n_config<default_config, Type>::architecture_config<Arch>::params;
-#endif // DOXYGEN_SHOULD_SKIP_THIS
+#endif // DOXYGEN_DOCUMENTATION_BUILD
 
 } // namespace detail
 

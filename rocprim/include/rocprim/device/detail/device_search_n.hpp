@@ -46,71 +46,74 @@ void set_search_n_kernel(size_t* output, size_t target)
     *output = target;
 }
 
-template<class Config, class InputIterator, class BinaryFunction>
-ROCPRIM_DEVICE
-void search_n_kernel_impl(InputIterator                                                   input,
-                          size_t*                                                         output,
-                          size_t                                                          size,
-                          size_t                                                          count,
-                          typename std::iterator_traits<InputIterator>::value_type const* value,
-                          BinaryFunction compare_function)
-{
-    constexpr auto params = device_params<Config>();
-
-    constexpr unsigned int block_size       = params.kernel_config.block_size;
-    constexpr unsigned int items_per_thread = params.kernel_config.items_per_thread;
-    constexpr unsigned int items_per_block  = block_size * items_per_thread;
-    const unsigned int     b_id             = blockIdx.x;
-    const unsigned int     t_id             = threadIdx.x;
-
-    size_t cur_start_idx = (b_id * items_per_block) + (items_per_thread * t_id);
-    size_t tar_count     = count;
-
-    for(size_t i = cur_start_idx; i < cur_start_idx + items_per_thread && i < size; i++)
-    {
-    inside_loop:
-        size_t started_from = i - (count - tar_count);
-        if(started_from < atomic_load(output) && i + tar_count <= size)
-        {
-            if(compare_function(*(input + i), *value))
-            {
-                tar_count--;
-                if(tar_count == 0)
-                {
-                    atomic_min(output, started_from);
-                    break;
-                }
-                else
-                {
-                    i++;
-                    goto inside_loop;
-                }
-            }
-            else
-            {
-                tar_count = count;
-            }
-        }
-        else
-        {
-            break;
-        }
-    }
-}
-
-template<class Config, class InputIterator, class BinaryFunction>
+template<class Config, class InputIterator, class BinaryPredicate>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
 void search_n_kernel(InputIterator                                                   input,
                      size_t*                                                         output,
                      size_t                                                          size,
                      size_t                                                          count,
                      typename std::iterator_traits<InputIterator>::value_type const* value,
-                     BinaryFunction compare_function)
+                     BinaryPredicate binary_predicate)
 {
-    search_n_kernel_impl<Config>(input, output, size, count, value, compare_function);
+    constexpr auto params           = device_params<Config>();
+    constexpr auto block_size       = params.kernel_config.block_size;
+    constexpr auto items_per_thread = params.kernel_config.items_per_thread;
+    constexpr auto items_per_block  = block_size * items_per_thread;
+
+    const auto b_id = block_thread_id<0>();
+    const auto t_id = block_id<0>();
+
+    const size_t this_thread_start_idx = (b_id * items_per_block) + (items_per_thread * t_id);
+
+    if(size - this_thread_start_idx < count)
+    { // not able to find a sequence equal to or longer than count
+        return;
+    }
+
+    size_t remaining_count    = count;
+    size_t sequence_start_idx = this_thread_start_idx;
+
+#define __LOCAL_SEARCH_N_LOOP_BODY__                \
+    if(binary_predicate(*(input + i), *value))      \
+    {                                               \
+        if(--remaining_count == 0)                  \
+        {                                           \
+            atomic_min(output, sequence_start_idx); \
+            return;                                 \
+        }                                           \
+    }                                               \
+    else                                            \
+    {                                               \
+        remaining_count    = count;                 \
+        sequence_start_idx = i + 1;                 \
+    }
+
+    if(b_id == (size / items_per_block))
+    { // incomplete block
+        const size_t num_valid_in_last_block = size - (b_id * items_per_thread * block_size);
+        for(size_t i = this_thread_start_idx;
+            sequence_start_idx - this_thread_start_idx < num_valid_in_last_block
+            && i + remaining_count <= size;
+            ++i)
+        {
+            __LOCAL_SEARCH_N_LOOP_BODY__
+        }
+    }
+    else
+    { // complete block
+        for(size_t i = this_thread_start_idx;
+            sequence_start_idx - this_thread_start_idx < items_per_thread
+            && i + remaining_count <= size;
+            ++i)
+        {
+            __LOCAL_SEARCH_N_LOOP_BODY__
+        }
+    }
+
+#undef __LOCAL_SEARCH_N_LOOP_BODY__
 }
 
-template<class Config, class InputIterator, class OutputIterator, class BinaryFunction>
+template<class Config, class InputIterator, class OutputIterator, class BinaryPredicate>
 ROCPRIM_INLINE
 hipError_t search_n_impl(void*          temporary_storage,
                          size_t&        storage_size,
@@ -119,9 +122,9 @@ hipError_t search_n_impl(void*          temporary_storage,
                          size_t         size,
                          size_t         count,
                          typename std::iterator_traits<InputIterator>::value_type const* value,
-                         BinaryFunction compare_function,
-                         hipStream_t    stream,
-                         bool           debug_synchronous)
+                         BinaryPredicate binary_predicate,
+                         hipStream_t     stream,
+                         bool            debug_synchronous)
 {
     using input_type  = typename std::iterator_traits<InputIterator>::value_type;
     using output_type = typename std::iterator_traits<OutputIterator>::value_type;
@@ -160,18 +163,11 @@ hipError_t search_n_impl(void*          temporary_storage,
         return hipErrorInvalidValue;
     }
 
-    if(size == 0 || count == 0)
+    if(size == 0 || count <= 0)
     {
         // return end
         start_timer();
-        set_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, count == 0 ? 0 : size);
-        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", 1, start);
-        RETURN_ON_ERROR(transform(tmp_output,
-                                  output,
-                                  1,
-                                  rocprim::identity<output_type>(),
-                                  stream,
-                                  debug_synchronous));
+        set_search_n_kernel<<<1, 1, 0, stream>>>(output, count <= 0 ? 0 : size);
         return hipSuccess;
     }
 
@@ -184,7 +180,7 @@ hipError_t search_n_impl(void*          temporary_storage,
                                                                    size,
                                                                    count,
                                                                    value,
-                                                                   compare_function);
+                                                                   binary_predicate);
     ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_kernel", size, start);
 
     RETURN_ON_ERROR(transform(tmp_output,
