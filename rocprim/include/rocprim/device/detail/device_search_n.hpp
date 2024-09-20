@@ -37,6 +37,7 @@
 
 BEGIN_ROCPRIM_NAMESPACE
 
+#define CHECK(...) printf(#__VA_ARGS__ " = %d\n", (__VA_ARGS__));
 namespace detail
 {
 
@@ -60,12 +61,12 @@ void search_n_kernel(InputIterator                                              
     constexpr auto items_per_thread = params.kernel_config.items_per_thread;
     constexpr auto items_per_block  = block_size * items_per_thread;
 
-    const auto b_id = block_thread_id<0>();
-    const auto t_id = block_id<0>();
+    const auto t_id = block_thread_id<0>();
+    const auto b_id = block_id<0>();
 
     const size_t this_thread_start_idx = (b_id * items_per_block) + (items_per_thread * t_id);
 
-    if(size - this_thread_start_idx < count)
+    if(size < count + this_thread_start_idx)
     { // not able to find a sequence equal to or longer than count
         return;
     }
@@ -88,26 +89,25 @@ void search_n_kernel(InputIterator                                              
         sequence_start_idx = i + 1;                 \
     }
 
-    if(b_id == (size / items_per_block))
-    { // incomplete block
-        const size_t num_valid_in_last_block = size - (b_id * items_per_thread * block_size);
+    if(size - this_thread_start_idx < items_per_thread)
+    { // last thread
+        const size_t num_valid_in_last_thread = size - this_thread_start_idx;
         for(size_t i = this_thread_start_idx;
-            sequence_start_idx - this_thread_start_idx < num_valid_in_last_block
+            sequence_start_idx - this_thread_start_idx < num_valid_in_last_thread
             && i + remaining_count <= size;
             ++i)
         {
             __LOCAL_SEARCH_N_LOOP_BODY__
         }
+        return;
     }
-    else
-    { // complete block
-        for(size_t i = this_thread_start_idx;
-            sequence_start_idx - this_thread_start_idx < items_per_thread
-            && i + remaining_count <= size;
-            ++i)
-        {
-            __LOCAL_SEARCH_N_LOOP_BODY__
-        }
+    // complete block
+    for(size_t i = this_thread_start_idx;
+        sequence_start_idx - this_thread_start_idx < items_per_thread
+        && i + remaining_count <= size;
+        ++i)
+    {
+        __LOCAL_SEARCH_N_LOOP_BODY__
     }
 
 #undef __LOCAL_SEARCH_N_LOOP_BODY__
