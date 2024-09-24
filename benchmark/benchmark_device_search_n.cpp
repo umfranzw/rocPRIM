@@ -65,7 +65,7 @@ using void_type = void;
 template<typename T, typename = void>
 constexpr bool is_type_arr_end = true;
 template<typename T>
-constexpr bool is_type_arr_end<T, std::void_type<typename T::next>> = false;
+constexpr bool is_type_arr_end<T, void_type<typename T::next>> = false;
 
 } // namespace
 

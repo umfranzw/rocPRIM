@@ -52,7 +52,7 @@ struct wrapped_search_n_config<default_config, Type>
     };
 };
 
-#ifdef DOXYGEN_DOCUMENTATION_BUILD
+#ifndef DOXYGEN_DOCUMENTATION_BUILD
 template<typename Config, typename Type>
 template<target_arch Arch>
 constexpr search_n_config_params
