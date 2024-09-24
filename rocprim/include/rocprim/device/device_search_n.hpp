@@ -22,10 +22,9 @@
 #define ROCPRIM_DEVICE_DEVICE_SEARCH_N_HPP_
 
 #include "../config.hpp"
-
 #include "config_types.hpp"
-
 #include "detail/device_search_n.hpp"
+#include "device_search_n_config.hpp"
 
 #include <cstddef>
 #include <cstdio>

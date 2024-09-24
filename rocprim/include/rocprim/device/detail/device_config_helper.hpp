@@ -1205,7 +1205,7 @@ struct search_n_config_params
 template<unsigned int BlockSize, unsigned int ItemsPerThread>
 struct search_n_config : public detail::search_n_config_params
 {
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
+#ifdef DOXYGEN_DOCUMENTATION_BUILD
     constexpr search_n_config()
         : detail::search_n_config_params{
             {BlockSize, ItemsPerThread, 0}
