@@ -29,6 +29,7 @@ subtrees:
           - file: device_ops/partition.rst
           - file: device_ops/run_length_encoding.rst
           - file: device_ops/scan.rst
+          - file: device_ops/search_n.rst
           - file: device_ops/select.rst
           - file: device_ops/reduce.rst
           - file: device_ops/adjacent_difference.rst

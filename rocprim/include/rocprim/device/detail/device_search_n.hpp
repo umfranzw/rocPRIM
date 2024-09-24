@@ -119,12 +119,12 @@ hipError_t search_n_impl(void*          temporary_storage,
                          size_t&        storage_size,
                          InputIterator  input,
                          OutputIterator output,
-                         size_t         size,
-                         size_t         count,
-                         typename std::iterator_traits<InputIterator>::value_type const* value,
-                         BinaryPredicate binary_predicate,
-                         hipStream_t     stream,
-                         bool            debug_synchronous)
+                         const size_t   size,
+                         const size_t   count,
+                         const typename std::iterator_traits<InputIterator>::value_type* value,
+                         const BinaryPredicate binary_predicate,
+                         const hipStream_t     stream,
+                         const bool            debug_synchronous)
 {
     using input_type  = typename std::iterator_traits<InputIterator>::value_type;
     using output_type = typename std::iterator_traits<OutputIterator>::value_type;

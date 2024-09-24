@@ -88,12 +88,12 @@ hipError_t search_n(void*          temporary_storage,
                     size_t&        storage_size,
                     InputIterator  input,
                     OutputIterator output,
-                    size_t         size,
-                    size_t         count,
-                    typename std::iterator_traits<InputIterator>::value_type const* value,
-                    BinaryPredicate binary_predicate  = BinaryPredicate(),
-                    hipStream_t     stream            = static_cast<hipStream_t>(0),
-                    bool            debug_synchronous = false)
+                    const size_t   size,
+                    const size_t   count,
+                    const typename std::iterator_traits<InputIterator>::value_type* value,
+                    const BinaryPredicate binary_predicate  = BinaryPredicate(),
+                    const hipStream_t     stream            = static_cast<hipStream_t>(0),
+                    const bool            debug_synchronous = false)
 {
     return detail::search_n_impl<Config>(temporary_storage,
                                          storage_size,

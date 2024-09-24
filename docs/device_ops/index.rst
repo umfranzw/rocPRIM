@@ -16,6 +16,7 @@
    * :ref:`dev-partition`
    * :ref:`dev-run_length`
    * :ref:`dev-scan`
+   * :ref:`dev-search_n`
    * :ref:`dev-select`
    * :ref:`dev-reduce`
    * :ref:`dev-adjacent_difference`
