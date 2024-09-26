@@ -32,12 +32,9 @@
 
 #include <cstddef>
 #include <cstdio>
-#include <iostream>
 #include <iterator>
 
 BEGIN_ROCPRIM_NAMESPACE
-
-#define CHECK(...) printf(#__VA_ARGS__ " = %d\n", (__VA_ARGS__));
 namespace detail
 {
 
@@ -54,43 +51,6 @@ ROCPRIM_KERNEL __launch_bounds__(1)
 void set_search_n_kernel(size_t* output, size_t target)
 {
     *output = target;
-}
-
-template<class OutputIterator>
-inline hipError_t
-    search_n_return_without_calculation_check(void*          temporary_storage,
-                                              size_t&        storage_size,
-                                              OutputIterator output,
-                                              const size_t   size,
-                                              const size_t   count,
-                                              std::chrono::steady_clock::time_point& start,
-                                              const hipStream_t                      stream,
-                                              const bool debug_synchronous,
-                                              bool&      need_return)
-{
-    need_return = false;
-    if(temporary_storage == nullptr)
-    {
-        storage_size = sizeof(size_t);
-        need_return  = true;
-        return hipSuccess;
-    }
-
-    if(count > size)
-    {
-        need_return = true;
-        return hipErrorInvalidValue;
-    }
-
-    if(size == 0 || count <= 0)
-    {
-        // return end
-        search_n_start_timer(start, debug_synchronous);
-        set_search_n_kernel<<<1, 1, 0, stream>>>(output, count <= 0 ? 0 : size);
-        need_return = true;
-        return hipSuccess;
-    }
-    return hipSuccess;
 }
 
 /// \brief Supports all forms of search_n operations,
@@ -161,25 +121,76 @@ void search_n_kernel(InputIterator                                              
 #undef __LOCAL_SEARCH_N_LOOP_BODY__
 }
 
-/// \brief This kernel will return bounded \p output that satisfies the \p binary_predicate.
-/// The element pointed to by index in \p output will not satisfy the predicate.
+
+/// \brief This kernel will return count of adjacent items that satisfies the \p binary_predicate
+/// and adjacent to the edge of the \p input sequence e.g. one of them must have the index 0 or size - 1
+/// This kernel can search from forward or backward
 ///
 /// The kernel only processes one block.
-/// Using this kernel requires ensuring that not all elements in the target block satisfy the \p binary_predicate.
 ///
-/// \param size This kernel will process the elements in [input + 0, input + size).
-/// \param forward Used to indicate whether the detection goes from back to front or vice versa
+/// \tparam forward Used to indicate whether the detection goes from back to front or vice versa
 ///
-template<class Config, class InputIterator, class BinaryPredicate>
-ROCPRIM_KERNEL __launch_bounds__(1)
+/// \param [in] size This kernel will process the elements in [input + 0, input + size).
+/// \param [in,out] output if all elements satisfie the \p binary_predicate, \p size will be written into \p output
+///
+template<class Config, bool forward, class InputIterator, class BinaryPredicate>
+ROCPRIM_KERNEL
 void search_n_detect_edge_kernel(
     InputIterator                                                   input,
     size_t*                                                         output,
     size_t                                                          size,
-    bool                                                            forward,
     typename std::iterator_traits<InputIterator>::value_type const* value,
     BinaryPredicate                                                 binary_predicate)
-{}
+{
+
+    constexpr auto params           = device_params<Config>();
+    constexpr auto block_size       = params.kernel_config.block_size;
+    constexpr auto items_per_thread = params.kernel_config.items_per_thread;
+    constexpr auto items_per_block  = block_size * items_per_thread;
+
+    const auto b_id = block_id<0>();
+    const auto t_id = block_thread_id<0>();
+
+    const size_t this_thread_start_idx = (b_id * items_per_block) + (items_per_thread * t_id);
+
+    if(b_id == 0 && t_id == 0)
+    {
+        *output = size;
+    }
+
+    if(this_thread_start_idx >= size)
+    {
+        return;
+    }
+
+    rocprim::syncthreads();
+
+    const size_t items_this_thread = size - this_thread_start_idx < items_per_thread
+                                         ? size - this_thread_start_idx
+                                         : items_per_thread;
+
+    if ROCPRIM_IF_CONSTEXPR(forward)
+    {
+        for(size_t i = this_thread_start_idx; i < this_thread_start_idx + items_this_thread; i++)
+        {
+            if(!binary_predicate(*(input + i), *value))
+            {
+                atomic_min(output, size - i - 1);
+            }
+        }
+    }
+    else
+    {
+        for(size_t i = this_thread_start_idx; i < this_thread_start_idx + items_this_thread; i++)
+        {
+            // find smallest i which not satisfy the binary_predicate
+            if(!binary_predicate(*(input + i), *value))
+            {
+                atomic_min(output, i);
+            }
+        }
+    }
+}
 
 /// \brief This kernel will mark blocks whose elements satisfy the \p binary_predicate.
 /// The marks will be stored in d_equal_flags.
@@ -272,20 +283,25 @@ hipError_t search_n_impl_2(void*          temporary_storage,
     target_arch target_arch;
     RETURN_ON_ERROR(host_target_arch(stream, target_arch));
 
-    const auto params = dispatch_target_arch<config>(target_arch);
-
+    const auto         params           = dispatch_target_arch<config>(target_arch);
     const unsigned int block_size       = params.kernel_config.block_size;
     const unsigned int items_per_thread = params.kernel_config.items_per_thread;
     const unsigned int items_per_block  = block_size * items_per_thread;
-    size_t*            tmp_output       = reinterpret_cast<size_t*>(temporary_storage);
-    const unsigned int num_blocks       = ceiling_div(size, items_per_block);
 
+    const unsigned int num_blocks = ceiling_div(size, items_per_block);
+
+    // We need to find `equal_blocks_count` number of blocks
+    size_t equal_blocks_count = count / items_per_block;
+    equal_blocks_count        = equal_blocks_count > 0 ? equal_blocks_count - 1 : 0;
+
+    size_t* tmp_output              = reinterpret_cast<size_t*>(temporary_storage);
+    size_t* d_equal_flags_start_pos = tmp_output + 1;
     // Start point for time measurements
     std::chrono::steady_clock::time_point start;
 
     if(temporary_storage == nullptr)
     {
-        storage_size = sizeof(size_t);
+        storage_size = sizeof(size_t) * 2;
         return hipSuccess;
     }
 
@@ -301,10 +317,6 @@ hipError_t search_n_impl_2(void*          temporary_storage,
         set_search_n_kernel<<<1, 1, 0, stream>>>(output, count <= 0 ? 0 : size);
         return hipSuccess;
     }
-
-    // We need to find `equal_blocks_count` number of blocks
-    size_t equal_blocks_count = count / items_per_block;
-    equal_blocks_count        = equal_blocks_count > 0 ? equal_blocks_count - 1 : 0;
 
     if(equal_blocks_count <= 1)
     { // In this case
@@ -334,19 +346,20 @@ hipError_t search_n_impl_2(void*          temporary_storage,
     {
         // search adjacent equal_blocks & search_n
         unsigned char* d_equal_flags;
-        size_t*        d_equal_flags_start_pos;
         unsigned char* d_standard_flag;
-        unsigned char  h_temp_flag;
-        size_t         h_equal_flags_start_pos;
-        size_t         h_items_need_tobe_checked;
+
+        unsigned char h_temp_flag;
+        size_t        h_temp_output;
+        size_t        h_equal_flags_start_pos;
+        size_t        h_items_need_tobe_checked;
 
         // TODO: move all these device vars into temporary_storage
-        HIP_CHECK(hipMallocAsync(&d_equal_flags, num_blocks * sizeof(unsigned char), stream));
-        HIP_CHECK(hipMallocAsync(&d_standard_flag, sizeof(unsigned char), stream));
-        HIP_CHECK(hipMallocAsync(&d_equal_flags_start_pos, sizeof(size_t), stream));
+        RETURN_ON_ERROR(hipMallocAsync(&d_equal_flags, num_blocks * sizeof(unsigned char), stream));
+        RETURN_ON_ERROR(hipMallocAsync(&d_standard_flag, sizeof(unsigned char), stream));
 
-        HIP_CHECK(hipMemsetAsync(&d_equal_flags, 0, num_blocks * sizeof(unsigned char), stream));
-        HIP_CHECK(hipMemsetAsync(&d_standard_flag, 1, sizeof(unsigned char), stream));
+        RETURN_ON_ERROR(
+            hipMemsetAsync(d_equal_flags, 0, num_blocks * sizeof(unsigned char), stream));
+        RETURN_ON_ERROR(hipMemsetAsync(d_standard_flag, 1, sizeof(unsigned char), stream));
 
         // Mark blocks as `equal` or `not equal`
         // Equal means each item in this block satisfy the `binary_predicate`
@@ -360,84 +373,94 @@ hipError_t search_n_impl_2(void*          temporary_storage,
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_equal_blocks_kernel", size, start);
 
         // Find the adjacent sequence of `equal_blocks` (with false `debug_synchronous`)
-        HIP_CHECK(search_n_impl_2<Config>(temporary_storage,
-                                          storage_size,
-                                          d_equal_flags,
-                                          d_equal_flags_start_pos,
-                                          num_blocks,
-                                          equal_blocks_count,
-                                          d_standard_flag,
-                                          rocprim::equal_to<unsigned int>{},
-                                          false));
+        RETURN_ON_ERROR(search_n_impl_2<Config>(temporary_storage,
+                                                storage_size,
+                                                d_equal_flags,
+                                                d_equal_flags_start_pos,
+                                                num_blocks,
+                                                equal_blocks_count,
+                                                d_standard_flag,
+                                                rocprim::equal_to<unsigned int>{},
+                                                stream,
+                                                false));
         // Read the result from device
-        HIP_CHECK(hipMemcpyAsync(&h_equal_flags_start_pos,
-                                 d_equal_flags_start_pos,
-                                 sizeof(h_equal_flags_start_pos),
-                                 hipMemcpyDeviceToHost,
-                                 stream));
+        RETURN_ON_ERROR(hipMemcpyAsync(&h_equal_flags_start_pos,
+                                       d_equal_flags_start_pos,
+                                       sizeof(h_equal_flags_start_pos),
+                                       hipMemcpyDeviceToHost,
+                                       stream));
 
         h_items_need_tobe_checked = count - (equal_blocks_count * items_per_block);
 
         if(h_equal_flags_start_pos == num_blocks)
         { // `equal_blocks` is not enough -- return `end`
             set_search_n_kernel<<<1, 1, 0, stream>>>(output, size);
+            ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", size, start);
         }
         else if(h_items_need_tobe_checked == 0)
         { // enough equal_blocks, no further check needed, return `h_equal_flags_start_pos * items_per_block`
             set_search_n_kernel<<<1, 1, 0, stream>>>(output,
                                                      h_equal_flags_start_pos * items_per_block);
-        }
-        else if(h_equal_flags_start_pos + equal_blocks_count == num_blocks
-                && h_equal_flags_start_pos == 0)
-        { // `count` is not enough -- return `end` ps. This will not happen. TODO: delete this case
-            set_search_n_kernel<<<1, 1, 0, stream>>>(output, size);
-        }
-        else if(h_equal_flags_start_pos == 0)
-        { // only check blocks after adjacent equal_blocks
-            size_t check_start_pos
-                = (h_equal_flags_start_pos + equal_blocks_count) * items_per_block;
-            // check all equal
-            search_n_equal_blocks_kernel<config, true>
-                <<<1, block_size, 0, stream>>>(input + check_start_pos,
-                                               h_items_need_tobe_checked,
-                                               d_equal_flags,
-                                               value,
-                                               binary_predicate);
-            HIP_CHECK(hipMemcpyAsync(&h_temp_flag,
-                                     d_equal_flags,
-                                     sizeof(h_temp_flag),
-                                     hipMemcpyDeviceToHost,
-                                     stream));
-            set_search_n_kernel<<<1, 1, 0, stream>>>(
-                output,
-                h_temp_flag ? h_equal_flags_start_pos * items_per_block : size);
-        }
-        else if(h_equal_flags_start_pos + equal_blocks_count == num_blocks)
-        { // only check block before adjacent equal_blocks
-            size_t check_start_pos
-                = (h_equal_flags_start_pos * items_per_block) - h_items_need_tobe_checked;
-            // check all equal
-            search_n_equal_blocks_kernel<config, true>
-                <<<1, block_size, 0, stream>>>(input + check_start_pos,
-                                               h_items_need_tobe_checked,
-                                               d_equal_flags,
-                                               value,
-                                               binary_predicate);
-            HIP_CHECK(hipMemcpyAsync(&h_temp_flag,
-                                     d_equal_flags,
-                                     sizeof(h_temp_flag),
-                                     hipMemcpyDeviceToHost,
-                                     stream));
-            set_search_n_kernel<<<1, 1, 0, stream>>>(output, h_temp_flag ? check_start_pos : size);
+            ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", size, start);
         }
         else
-        { // need to check blocks before and after
+        { // further check
+            // determine the left bound
+            size_t left_bound       = h_equal_flags_start_pos * items_per_block;
+            size_t check_left_size  = min(left_bound, h_items_need_tobe_checked);
+            size_t check_left_start = left_bound - check_left_size;
+            search_n_detect_edge_kernel<config, true>
+                <<<1, block_size, 0, stream>>>(input + check_left_start,
+                                               tmp_output,
+                                               check_left_size,
+                                               value,
+                                               binary_predicate);
+            ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_detect_edge_kernel", size, start);
+            RETURN_ON_ERROR(hipMemcpyAsync(&h_temp_output,
+                                           tmp_output,
+                                           sizeof(h_temp_output),
+                                           hipMemcpyDeviceToHost,
+                                           stream));
+            left_bound -= h_temp_output;
+            h_items_need_tobe_checked -= h_temp_output;
+
+            size_t right_bound = (h_equal_flags_start_pos + equal_blocks_count) * items_per_block
+                                 + h_items_need_tobe_checked;
+            if(right_bound > size)
+            { // return end
+                set_search_n_kernel<<<1, 1, 0, stream>>>(output, size);
+                ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", size, start);
+            }
+            else
+            { // verify the right count
+                size_t check_right_size = h_items_need_tobe_checked;
+                size_t check_right_start
+                    = (h_equal_flags_start_pos + equal_blocks_count) * items_per_block;
+                search_n_detect_edge_kernel<config, false>
+                    <<<1, block_size, 0, stream>>>(input + check_right_start,
+                                                   tmp_output,
+                                                   check_right_size,
+                                                   value,
+                                                   binary_predicate);
+                ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_detect_edge_kernel",
+                                                            size,
+                                                            start);
+                RETURN_ON_ERROR(hipMemcpyAsync(&h_temp_output,
+                                               tmp_output,
+                                               sizeof(h_temp_output),
+                                               hipMemcpyDeviceToHost,
+                                               stream));
+                h_items_need_tobe_checked -= h_temp_output;
+                set_search_n_kernel<<<1, 1, 0, stream>>>(output,
+                                                         h_items_need_tobe_checked == 0 ? left_bound
+                                                                                        : size);
+                ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("set_search_n_kernel", size, start);
+            }
         }
 
         // TODO: use temporary_storage
-        HIP_CHECK(hipFree(d_equal_flags));
-        HIP_CHECK(hipFree(d_standard_flag));
-        HIP_CHECK(hipFree(d_equal_flags_start_pos));
+        RETURN_ON_ERROR(hipFree(d_equal_flags));
+        RETURN_ON_ERROR(hipFree(d_standard_flag));
 
         return hipSuccess;
     }

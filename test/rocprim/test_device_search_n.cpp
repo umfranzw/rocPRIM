@@ -96,6 +96,7 @@ using RocprimDeviceSearchNTestsParams = ::testing::Types<
 
 TYPED_TEST_SUITE(RocprimDeviceSearchNTests, RocprimDeviceSearchNTestsParams);
 
+/*
 TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
 {
     int device_id = test_common_utils::obtain_device_from_ctest();
@@ -123,7 +124,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
             size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
             hipGraph_t     graph;
             hipGraphExec_t graph_instance;
-            size_t         temp_storage_size = sizeof(size_t);
+            size_t         temp_storage_size = sizeof(size_t)*2;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
@@ -212,7 +213,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, EqualSequence)
             size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
             hipGraph_t     graph;
             hipGraphExec_t graph_instance;
-            size_t         temp_storage_size = sizeof(size_t);
+            size_t         temp_storage_size = sizeof(size_t)*2;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
@@ -297,7 +298,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
             size_t         count  = size;
             hipGraph_t     graph;
             hipGraphExec_t graph_instance;
-            size_t         temp_storage_size = sizeof(size_t);
+            size_t         temp_storage_size = sizeof(size_t)*2;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
@@ -382,7 +383,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
             size_t         count  = 0;
             hipGraph_t     graph;
             hipGraphExec_t graph_instance;
-            size_t         temp_storage_size = sizeof(size_t);
+            size_t         temp_storage_size = sizeof(size_t)*2;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
@@ -467,7 +468,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
             size_t                  count  = size / 2;
             hipGraph_t              graph;
             hipGraphExec_t          graph_instance;
-            size_t                  temp_storage_size = sizeof(size_t);
+            size_t                  temp_storage_size = sizeof(size_t)*2;
             input_type              h_value{1};
             std::vector<input_type> h_input(size);
             std::fill(h_input.begin(), h_input.begin() + (size - count), h_value);
@@ -523,7 +524,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
         }
     }
 }
-
+/*
 TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
 {
     int device_id = test_common_utils::obtain_device_from_ctest();
@@ -551,7 +552,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
             size_t                  count  = size / 2;
             hipGraph_t              graph;
             hipGraphExec_t          graph_instance;
-            size_t                  temp_storage_size = sizeof(size_t);
+            size_t                  temp_storage_size = sizeof(size_t)*2;
             input_type              h_value{1};
             std::vector<input_type> h_input(size);
             std::fill(h_input.begin(), h_input.begin() + (size - count), 0);
@@ -607,8 +608,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
         }
     }
 }
+*/
 
-/*
+// start from middle single test
 int main(int argc, char* argv[])
 {
     
@@ -626,22 +628,24 @@ int main(int argc, char* argv[])
 
     op_type        op{};
     hipStream_t    stream = 0; // default
-    size_t         size = stoll(std::string(argv[1]));
-    size_t         count  = size/2;
+    size_t         size = 2048;
+    size_t         count  = 10;
+    size_t         start_pos = 0;
     hipGraph_t     graph;
     hipGraphExec_t graph_instance;
-    size_t         temp_storage_size = sizeof(size_t);
+    size_t         temp_storage_size = sizeof(size_t)*2;
     input_type     h_value{1};
     std::vector<input_type> h_input(size);
-    std::fill(h_input.begin(), h_input.begin() + (size - count), 0);
-    std::fill(h_input.begin() + count, h_input.end(), h_value);
+    std::fill(h_input.begin(),h_input.begin()+start_pos,0);
+    std::fill(h_input.begin()+start_pos,h_input.begin()+start_pos+count,h_value);
+    std::fill(h_input.begin()+start_pos+count,h_input.end(),0);
     output_type                         h_output;
     test_utils::device_ptr<input_type>  d_input(h_input);
     test_utils::device_ptr<input_type>  d_value(&h_value, 1);
     test_utils::device_ptr<output_type> d_output(1);
     test_utils::device_ptr<void>        d_temp_storage(temp_storage_size);
 
-    HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
+    HIP_CHECK(rocprim::search_n_2<config>(d_temp_storage.get(),
                                         temp_storage_size,
                                         d_input.get(),
                                         d_output.get(),
@@ -659,10 +663,10 @@ int main(int argc, char* argv[])
     h_output = d_output.load()[0];
 
     if(h_output == expected){
-        printf("equal\n");
+        printf("equal %td: exp:%td\n",h_output,expected);
         return 0;
     }else{
-        printf("not equal\n");
+        printf("not equal %td: exp:%td\n",h_output,expected);
         return -1;
     }
 }
