@@ -49,15 +49,15 @@ BEGIN_ROCPRIM_NAMESPACE
 /// * Accepts custom compare_functions for find_end across the device.
 /// * Streams in graph capture mode are supported
 ///
-/// \tparam Config [optional] configuration of the primitive. It has to be `search_config`.
+/// \tparam Config [optional] configuration of the primitive, must be `default_config` or `search_config`.
 /// \tparam InputIterator1 [inferred] random-access iterator type of the input range. Must meet the
 ///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
 /// \tparam InputIterator2 [inferred] random-access iterator type of the input range. Must meet the
 ///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
 /// \tparam OutputIterator [inferred] random-access iterator type of the input range. Must meet the
-///   requirements of a C++ InputIterator concept. It can be a simple pointer type.
-/// \tparam BinaryFunction [inferred] Type of binary function that accepts a argument of the
-///   type `InputIterator1` and of the type `InputIterator1` returns a value convertible to bool.
+///   requirements of a C++ OutputIterator concept. It can be a simple pointer type.
+/// \tparam BinaryFunction [inferred] Type of binary function that accepts two arguments of the
+///   type `InputIterator1` and returns a value convertible to bool.
 ///   Default type is `rocprim::less<>.`
 ///
 /// \param [in] temporary_storage pointer to a device-accessible temporary storage. When
@@ -67,13 +67,13 @@ BEGIN_ROCPRIM_NAMESPACE
 /// \param [in] input iterator to the input range.
 /// \param [in] keys iterator to the key range.
 /// \param [out] output iterator to the output range. The output is one element.
-/// \param [in] size number of element in the input range.
-/// \param [in] keys_size number of element in the key range.
+/// \param [in] size number of elements in the input range.
+/// \param [in] keys_size number of elements in the key range.
 /// \param [in] compare_function binary operation function object that will be used for comparison.
 ///   The signature of the function should be equivalent to the following:
 ///   <tt>bool f(const T &a, const T &b);</tt>. The signature does not need to have
 ///   <tt>const &</tt>, but function object must not modify the objects passed to it.
-///   The comparator must meet the C++ named requirement Compare.
+///   The comparator must meet the C++ named requirement BinaryPredicate.
 ///   The default value is `BinaryFunction()`.
 /// \param [in] stream [optional] HIP stream object. Default is `0` (default stream).
 /// \param [in] debug_synchronous [optional] If true, synchronization after every kernel
