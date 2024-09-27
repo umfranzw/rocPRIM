@@ -106,38 +106,6 @@ hipError_t search_n(void*          temporary_storage,
                                          debug_synchronous);
 }
 
-template<class Config = default_config,
-         class InputIterator,
-         class OutputIterator,
-         class BinaryPredicate
-         = rocprim::equal_to<typename std::iterator_traits<InputIterator>::value_type>>
-ROCPRIM_INLINE
-hipError_t search_n_2(void*          temporary_storage,
-                      size_t&        storage_size,
-                      InputIterator  input,
-                      OutputIterator output,
-                      const size_t   size,
-                      const size_t   count,
-                      const typename std::iterator_traits<InputIterator>::value_type* value,
-                      const BinaryPredicate binary_predicate  = BinaryPredicate(),
-                      const hipStream_t     stream            = static_cast<hipStream_t>(0),
-                      const bool            debug_synchronous = false)
-{
-    return detail::search_n_impl_2<Config>(temporary_storage,
-                                           storage_size,
-                                           input,
-                                           output,
-                                           size,
-                                           count,
-                                           value,
-                                           binary_predicate,
-                                           stream,
-                                           debug_synchronous);
-}
-
-/// @}
-// end of group devicemodule
-
 END_ROCPRIM_NAMESPACE
 
 #endif // ROCPRIM_DEVICE_DEVICE_SEARCH_N_HPP_
