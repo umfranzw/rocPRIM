@@ -110,6 +110,7 @@ endfunction()
 add_hip_test("hip.device_api" hip/test_hip_api.cpp)
 add_hip_test("hip.async_copy" hip/test_hip_async_copy.cpp)
 add_hip_test("hip.ordered_block_id" hip/test_ordered_block_id.cpp)
+
 # rocPRIM test
 add_subdirectory(rocprim)
 
