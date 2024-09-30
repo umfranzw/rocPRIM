@@ -128,7 +128,7 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
                                                  reduce_op_type,
                                                  decltype(ordered_tile_id)>;
         target_arch target_arch;
-        RETURN_ON_ERROR(host_target_arch(stream, target_arch));
+        ROCPRIM_RETURN_ON_ERROR(host_target_arch(stream, target_arch));
         const adjacent_find_config_params params     = dispatch_target_arch<config>(target_arch);
         const unsigned int                block_size = params.kernel_config.block_size;
         const unsigned int                items_per_thread = params.kernel_config.items_per_thread;
@@ -140,11 +140,11 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
         // at the same time
         int min_grid_size      = 0;
         int optimal_block_size = 0;
-        RETURN_ON_ERROR(hipOccupancyMaxPotentialBlockSize(&min_grid_size,
-                                                          &optimal_block_size,
-                                                          adjacent_find_block_reduce_kernel,
-                                                          shared_mem_bytes,
-                                                          int(block_size)));
+        ROCPRIM_RETURN_ON_ERROR(hipOccupancyMaxPotentialBlockSize(&min_grid_size,
+                                                                  &optimal_block_size,
+                                                                  adjacent_find_block_reduce_kernel,
+                                                                  shared_mem_bytes,
+                                                                  int(block_size)));
         min_grid_size = std::min(static_cast<unsigned int>(min_grid_size), grid_size);
 
         if(debug_synchronous)

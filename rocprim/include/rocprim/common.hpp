@@ -24,40 +24,39 @@
 namespace detail
 {
 #ifndef ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
-#define ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(name, size, start)                           \
-    do                                                                                           \
-    {                                                                                            \
-        auto _error = hipGetLastError();                                                         \
-        if(_error != hipSuccess)                                                                 \
-            return _error;                                                                       \
-        if(debug_synchronous)                                                                    \
-        {                                                                                        \
-            std::cout << name << "(" << size << ")";                                             \
-            auto __error = hipStreamSynchronize(stream);                                         \
-            if(__error != hipSuccess)                                                            \
-                return __error;                                                                  \
-            auto _end = std::chrono::steady_clock::now();                                        \
-            auto _d   = std::chrono::duration_cast<std::chrono::duration<double>>(_end - start); \
-            std::cout << " " << _d.count() * 1000 << " ms" << '\n';                              \
-        }                                                                                        \
-    }                                                                                            \
-    while(0)
-#endif  // ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
+    #define ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(name, size, start)                           \
+        do                                                                                           \
+        {                                                                                            \
+            auto _error = hipGetLastError();                                                         \
+            if(_error != hipSuccess)                                                                 \
+                return _error;                                                                       \
+            if(debug_synchronous)                                                                    \
+            {                                                                                        \
+                std::cout << name << "(" << size << ")";                                             \
+                auto __error = hipStreamSynchronize(stream);                                         \
+                if(__error != hipSuccess)                                                            \
+                    return __error;                                                                  \
+                auto _end = std::chrono::steady_clock::now();                                        \
+                auto _d   = std::chrono::duration_cast<std::chrono::duration<double>>(_end - start); \
+                std::cout << " " << _d.count() * 1000 << " ms" << '\n';                              \
+            }                                                                                        \
+        }                                                                                            \
+        while(0)
+#endif // ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
 
-#ifndef RETURN_ON_ERROR
-#define RETURN_ON_ERROR(...)              \
-    do                                    \
-    {                                     \
-        hipError_t error = (__VA_ARGS__); \
-        if(error != hipSuccess)           \
-        {                                 \
-            return error;                 \
-        }                                 \
-    }                                     \
-    while(0)
-#endif // RETURN_ON_ERROR
+#ifndef ROCPRIM_RETURN_ON_ERROR
+    #define ROCPRIM_RETURN_ON_ERROR(...)      \
+        do                                    \
+        {                                     \
+            hipError_t error = (__VA_ARGS__); \
+            if(error != hipSuccess)           \
+            {                                 \
+                return error;                 \
+            }                                 \
+        }                                     \
+        while(0)
+#endif // ROCPRIM_RETURN_ON_ERROR
 
-} // end detail namespace
+} // namespace detail
 
-
-#endif  // ROCPRIM_COMMON_HPP_
+#endif // ROCPRIM_COMMON_HPP_

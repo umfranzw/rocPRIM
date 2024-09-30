@@ -81,17 +81,6 @@ void block_reduce_kernel(InputIterator  input,
         std::cout << " " << _d.count() * 1000 << " ms" << '\n'; \
     }
 
-#define ROCPRIM_RETURN_ON_ERROR(...)      \
-    do                                    \
-    {                                     \
-        hipError_t error = (__VA_ARGS__); \
-        if(error != hipSuccess)           \
-        {                                 \
-            return error;                 \
-        }                                 \
-    }                                     \
-    while(0)
-
 #define SINGLE_REDUCE_KERNEL(fit_larger, fit_items)                                       \
     do                                                                                    \
     {                                                                                     \
@@ -299,7 +288,6 @@ hipError_t reduce_impl(void * temporary_storage,
 }
 
 #undef SINGLE_REDUCE_KERNEL
-#undef ROCPRIM_RETURN_ON_ERROR
 #undef ROCPRIM_DETAIL_HIP_SYNC
 
 } // namespace detail

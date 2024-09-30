@@ -319,7 +319,7 @@ hipError_t search_impl(void*          temporary_storage,
     using config = wrapped_search_config<Config, input_type>;
 
     target_arch target_arch;
-    RETURN_ON_ERROR(host_target_arch(stream, target_arch));
+    ROCPRIM_RETURN_ON_ERROR(host_target_arch(stream, target_arch));
 
     const search_config_params params = dispatch_target_arch<config>(target_arch);
 
@@ -423,12 +423,12 @@ hipError_t search_impl(void*          temporary_storage,
         }
     }
 
-    RETURN_ON_ERROR(transform(tmp_output,
-                              output,
-                              1,
-                              rocprim::identity<output_type>(),
-                              stream,
-                              debug_synchronous));
+    ROCPRIM_RETURN_ON_ERROR(transform(tmp_output,
+                                      output,
+                                      1,
+                                      rocprim::identity<output_type>(),
+                                      stream,
+                                      debug_synchronous));
 
     return hipSuccess;
 }

@@ -44,11 +44,6 @@ BEGIN_ROCPRIM_NAMESPACE
 /// \addtogroup devicemodule
 /// @{
 
-namespace detail
-{
-
-} // end detail namespace
-
 /// \brief Parallel run-length encoding for device level.
 ///
 /// run_length_encode function performs a device-wide run-length encoding of runs (groups)

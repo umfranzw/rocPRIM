@@ -217,7 +217,7 @@ hipError_t partial_sort_impl(void*              temporary_storage,
     const bool full_sort = middle + 1 == size;
     if(!full_sort)
     {
-        RETURN_ON_ERROR(
+        ROCPRIM_RETURN_ON_ERROR(
             helper.template nth_element_impl<config_nth_element>(nullptr,
                                                                  storage_size_nth_element,
                                                                  keys_in,
@@ -231,7 +231,7 @@ hipError_t partial_sort_impl(void*              temporary_storage,
     }
     size_t storage_size_merge_sort{};
 
-    RETURN_ON_ERROR(helper.template merge_sort_impl<config_merge_sort>(
+    ROCPRIM_RETURN_ON_ERROR(helper.template merge_sort_impl<config_merge_sort>(
         nullptr,
         storage_size_merge_sort,
         keys_in,
@@ -264,17 +264,17 @@ hipError_t partial_sort_impl(void*              temporary_storage,
 
     if(!inplace)
     {
-        RETURN_ON_ERROR(transform(keys_in,
-                                  keys_output_nth_element,
-                                  size,
-                                  rocprim::identity<key_type>(),
-                                  stream,
-                                  debug_synchronous));
+        ROCPRIM_RETURN_ON_ERROR(transform(keys_in,
+                                          keys_output_nth_element,
+                                          size,
+                                          rocprim::identity<key_type>(),
+                                          stream,
+                                          debug_synchronous));
     }
 
     if(!full_sort)
     {
-        RETURN_ON_ERROR(
+        ROCPRIM_RETURN_ON_ERROR(
             helper.template nth_element_impl<config_nth_element>(temporary_storage_nth_element,
                                                                  storage_size_nth_element,
                                                                  keys_in,
@@ -291,12 +291,12 @@ hipError_t partial_sort_impl(void*              temporary_storage,
     {
         if(!inplace)
         {
-            RETURN_ON_ERROR(transform(keys_output_nth_element,
-                                      keys_out,
-                                      1,
-                                      rocprim::identity<key_type>(),
-                                      stream,
-                                      debug_synchronous));
+            ROCPRIM_RETURN_ON_ERROR(transform(keys_output_nth_element,
+                                              keys_out,
+                                              1,
+                                              rocprim::identity<key_type>(),
+                                              stream,
+                                              debug_synchronous));
         }
         return hipSuccess;
     }

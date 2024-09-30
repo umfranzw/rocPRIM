@@ -657,15 +657,16 @@ ROCPRIM_INLINE hipError_t
             std::cout << "iteration: " << iteration++ << '\n';
         }
 
-        RETURN_ON_ERROR(hipMemsetAsync(buckets, 0, sizeof(*buckets) * num_buckets, stream));
+        ROCPRIM_RETURN_ON_ERROR(hipMemsetAsync(buckets, 0, sizeof(*buckets) * num_buckets, stream));
 
-        RETURN_ON_ERROR(
+        ROCPRIM_RETURN_ON_ERROR(
             hipMemsetAsync(equality_buckets, 0, sizeof(*equality_buckets) * num_buckets, stream));
 
         // Reset lookback scan states to zero, indicating empty prefix.
-        RETURN_ON_ERROR(nth_element_onesweep_lookback_state::reset(lookback_states,
-                                                                   num_partitions * num_blocks,
-                                                                   stream));
+        ROCPRIM_RETURN_ON_ERROR(
+            nth_element_onesweep_lookback_state::reset(lookback_states,
+                                                       num_partitions * num_blocks,
+                                                       stream));
 
         start_timer();
         kernel_find_splitters<config>
@@ -700,21 +701,21 @@ ROCPRIM_INLINE hipError_t
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("kernel_copy_buckets", size, start);
 
         // Copy the results in keys_buffer back to the keys
-        RETURN_ON_ERROR(transform(keys_buffer,
-                                  keys,
-                                  size,
-                                  ::rocprim::identity<key_type>(),
-                                  stream,
-                                  debug_synchronous));
+        ROCPRIM_RETURN_ON_ERROR(transform(keys_buffer,
+                                          keys,
+                                          size,
+                                          ::rocprim::identity<key_type>(),
+                                          stream,
+                                          debug_synchronous));
 
         n_th_element_iteration_data h_nth_element_data;
-        RETURN_ON_ERROR(hipMemcpyAsync(&h_nth_element_data,
-                                       nth_element_data,
-                                       sizeof(h_nth_element_data),
-                                       hipMemcpyDeviceToHost,
-                                       stream));
+        ROCPRIM_RETURN_ON_ERROR(hipMemcpyAsync(&h_nth_element_data,
+                                               nth_element_data,
+                                               sizeof(h_nth_element_data),
+                                               hipMemcpyDeviceToHost,
+                                               stream));
 
-        RETURN_ON_ERROR(hipStreamSynchronize(stream));
+        ROCPRIM_RETURN_ON_ERROR(hipStreamSynchronize(stream));
 
         size_t offset          = h_nth_element_data.offset;
         size_t bucket_size     = h_nth_element_data.size;
