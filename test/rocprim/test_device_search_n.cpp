@@ -96,9 +96,6 @@ using RocprimDeviceSearchNTestsParams = ::testing::Types<
 
 TYPED_TEST_SUITE(RocprimDeviceSearchNTests, RocprimDeviceSearchNTestsParams);
 
-// #define SINGLE_TEST
-#ifndef SINGLE_TEST
-
 TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
 {
     int device_id = test_common_utils::obtain_device_from_ctest();
@@ -126,7 +123,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
             size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
             hipGraph_t     graph;
             hipGraphExec_t graph_instance;
-            size_t         temp_storage_size = sizeof(size_t);
+            size_t         temp_storage_size;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
@@ -140,7 +137,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
             test_utils::device_ptr<input_type>  d_input(h_input);
             test_utils::device_ptr<input_type>  d_value(&h_value, 1);
             test_utils::device_ptr<output_type> d_output(1);
-            test_utils::device_ptr<void>        d_temp_storage(temp_storage_size);
+            test_utils::device_ptr<void>        d_temp_storage;
 
             SCOPED_TRACE(testing::Message() << "with size = " << h_input.size());
             SCOPED_TRACE(testing::Message() << "with count = " << count);
@@ -151,7 +148,16 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
                 // Default stream does not support hipGraph stream capture, so create one
                 HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
             }
+            // get size
+            HIP_CHECK(rocprim::search_n<config>(0,
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                nullptr));
 
+            d_temp_storage.resize(temp_storage_size);
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
                                                 d_input.get(),
@@ -215,7 +221,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, EqualSequence)
             size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
             hipGraph_t     graph;
             hipGraphExec_t graph_instance;
-            size_t         temp_storage_size = sizeof(size_t);
+            size_t         temp_storage_size;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
@@ -225,7 +231,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, EqualSequence)
             test_utils::device_ptr<input_type>  d_input(h_input);
             test_utils::device_ptr<input_type>  d_value(&h_value, 1);
             test_utils::device_ptr<output_type> d_output(1);
-            test_utils::device_ptr<void>        d_temp_storage(temp_storage_size);
+            test_utils::device_ptr<void>        d_temp_storage;
 
             SCOPED_TRACE(testing::Message() << "with size = " << h_input.size());
             SCOPED_TRACE(testing::Message() << "with count = " << count);
@@ -236,6 +242,16 @@ TYPED_TEST(RocprimDeviceSearchNTests, EqualSequence)
                 // Default stream does not support hipGraph stream capture, so create one
                 HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
             }
+            // get size
+            HIP_CHECK(rocprim::search_n<config>(0,
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                nullptr));
+
+            d_temp_storage.resize(temp_storage_size);
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
@@ -300,7 +316,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
             size_t         count  = size;
             hipGraph_t     graph;
             hipGraphExec_t graph_instance;
-            size_t         temp_storage_size = sizeof(size_t);
+            size_t         temp_storage_size;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
@@ -310,7 +326,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
             test_utils::device_ptr<input_type>  d_input(h_input);
             test_utils::device_ptr<input_type>  d_value(&h_value, 1);
             test_utils::device_ptr<output_type> d_output(1);
-            test_utils::device_ptr<void>        d_temp_storage(temp_storage_size);
+            test_utils::device_ptr<void>        d_temp_storage;
 
             SCOPED_TRACE(testing::Message() << "with size = " << h_input.size());
             SCOPED_TRACE(testing::Message() << "with count = " << count);
@@ -321,6 +337,16 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
                 // Default stream does not support hipGraph stream capture, so create one
                 HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
             }
+            // get size
+            HIP_CHECK(rocprim::search_n<config>(0,
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                nullptr));
+
+            d_temp_storage.resize(temp_storage_size);
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
@@ -385,7 +411,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
             size_t         count  = 0;
             hipGraph_t     graph;
             hipGraphExec_t graph_instance;
-            size_t         temp_storage_size = sizeof(size_t);
+            size_t         temp_storage_size;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
@@ -395,7 +421,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
             test_utils::device_ptr<input_type>  d_input(h_input);
             test_utils::device_ptr<input_type>  d_value(&h_value, 1);
             test_utils::device_ptr<output_type> d_output(1);
-            test_utils::device_ptr<void>        d_temp_storage(temp_storage_size);
+            test_utils::device_ptr<void>        d_temp_storage;
 
             SCOPED_TRACE(testing::Message() << "with size = " << h_input.size());
             SCOPED_TRACE(testing::Message() << "with count = " << count);
@@ -406,7 +432,16 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
                 // Default stream does not support hipGraph stream capture, so create one
                 HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
             }
+            // get size
+            HIP_CHECK(rocprim::search_n<config>(0,
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                nullptr));
 
+            d_temp_storage.resize(temp_storage_size);
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
                                                 d_input.get(),
@@ -470,7 +505,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
             size_t                  count  = size / 2;
             hipGraph_t              graph;
             hipGraphExec_t          graph_instance;
-            size_t                  temp_storage_size = sizeof(size_t);
+            size_t                  temp_storage_size;
             input_type              h_value{1};
             std::vector<input_type> h_input(size);
             std::fill(h_input.begin(), h_input.begin() + (size - count), h_value);
@@ -479,7 +514,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
             test_utils::device_ptr<input_type>  d_input(h_input);
             test_utils::device_ptr<input_type>  d_value(&h_value, 1);
             test_utils::device_ptr<output_type> d_output(1);
-            test_utils::device_ptr<void>        d_temp_storage(temp_storage_size);
+            test_utils::device_ptr<void>        d_temp_storage;
 
             SCOPED_TRACE(testing::Message() << "with size = " << h_input.size());
             SCOPED_TRACE(testing::Message() << "with count = " << count);
@@ -490,6 +525,16 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
                 // Default stream does not support hipGraph stream capture, so create one
                 HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
             }
+            // get size
+            HIP_CHECK(rocprim::search_n<config>(0,
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                nullptr));
+
+            d_temp_storage.resize(temp_storage_size);
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
@@ -554,7 +599,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
             size_t                  count  = size / 2;
             hipGraph_t              graph;
             hipGraphExec_t          graph_instance;
-            size_t                  temp_storage_size = sizeof(size_t);
+            size_t                  temp_storage_size;
             input_type              h_value{1};
             std::vector<input_type> h_input(size);
             std::fill(h_input.begin(), h_input.begin() + (size - count), 0);
@@ -563,7 +608,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
             test_utils::device_ptr<input_type>  d_input(h_input);
             test_utils::device_ptr<input_type>  d_value(&h_value, 1);
             test_utils::device_ptr<output_type> d_output(1);
-            test_utils::device_ptr<void>        d_temp_storage(temp_storage_size);
+            test_utils::device_ptr<void>        d_temp_storage;
 
             SCOPED_TRACE(testing::Message() << "with size = " << h_input.size());
             SCOPED_TRACE(testing::Message() << "with count = " << count);
@@ -574,6 +619,16 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
                 // Default stream does not support hipGraph stream capture, so create one
                 HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
             }
+            // get size
+            HIP_CHECK(rocprim::search_n<config>(0,
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                nullptr));
+
+            d_temp_storage.resize(temp_storage_size);
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
@@ -610,84 +665,3 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
         }
     }
 }
-#else
-
-// Single test
-int main(int argc, char* argv[])
-{
-
-    size_t size      = 100000;
-    size_t count     = 3538;
-    size_t start_pos = 0;
-
-    // for(size_t start_pos = 0; start_pos < 100; start_pos+=3)
-    {
-
-        int device_id = test_common_utils::obtain_device_from_ctest();
-
-        HIP_CHECK(hipSetDevice(device_id));
-
-        using input_type  = int;
-        using output_type = size_t;
-        using op_type     = rocprim::equal_to<input_type>;
-        using config      = rocprim::default_config;
-
-        constexpr bool use_indirect_iterator = false;
-        constexpr bool debug_synchronous     = false;
-
-        op_type     op{};
-        hipStream_t stream = 0; // default
-
-        hipGraph_t              graph;
-        hipGraphExec_t          graph_instance;
-        size_t                  temp_storage_size = sizeof(size_t);
-        input_type              h_value{1};
-        std::vector<input_type> h_input(size);
-        if(start_pos + count <= size)
-        {
-            std::fill(h_input.begin(), h_input.begin() + start_pos, 0);
-            std::fill(h_input.begin() + start_pos, h_input.begin() + start_pos + count, h_value);
-            std::fill(h_input.begin() + start_pos + count, h_input.end(), 0);
-        }
-        else
-        {
-            std::fill(h_input.begin(), h_input.end(), 0);
-        }
-
-        output_type                         h_output;
-        test_utils::device_ptr<input_type>  d_input(h_input);
-        test_utils::device_ptr<input_type>  d_value(&h_value, 1);
-        test_utils::device_ptr<output_type> d_output(1);
-        test_utils::device_ptr<void>        d_temp_storage(temp_storage_size);
-
-        HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
-                                            temp_storage_size,
-                                            d_input.get(),
-                                            d_output.get(),
-                                            h_input.size(),
-                                            count + 1,
-                                            d_value.get(),
-                                            op,
-                                            stream,
-                                            debug_synchronous));
-
-        const auto expected
-            = std::search_n(h_input.cbegin(), h_input.cend(), count + 1, h_value, op)
-              - h_input.cbegin();
-
-        h_output = d_output.load()[0];
-
-        if(h_output == expected)
-        {
-            printf("equal %td: exp:%td\n", h_output, expected);
-            // return 0;
-        }
-        else
-        {
-            printf("!!! not equal %td: exp:%td\n", h_output, expected);
-            // return -1;
-        }
-    }
-}
-
-#endif

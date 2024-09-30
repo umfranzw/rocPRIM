@@ -114,6 +114,7 @@ void search_n_equal_blocks_kernel(
     InputIterator                                                   input,
     const size_t                                                    size,
     unsigned char*                                                  d_equal_flags,
+    unsigned char*                                                  d_standard_flag,
     const typename std::iterator_traits<InputIterator>::value_type* value,
     BinaryPredicate                                                 binary_predicate)
 {
@@ -124,15 +125,14 @@ void search_n_equal_blocks_kernel(
 
     const auto b_id                = block_id<0>();
     const auto t_id                = block_thread_id<0>();
-    const bool is_incomplete_block = b_id == (size / items_per_block);
 
     // set standard value which will be use later
     if(b_id == 0 && t_id == 0)
     {
-        d_equal_flags[gridDim.x] = 1;
+        *d_standard_flag = 1;
     }
 
-    if(is_incomplete_block)
+    if(b_id == (size / items_per_block)) // is_incomplete_block
     {
         if(t_id == 0)
         {
@@ -149,9 +149,11 @@ void search_n_equal_blocks_kernel(
         rocprim::syncthreads();
 
         const size_t this_thread_start_idx = (b_id * items_per_block) + (items_per_thread * t_id);
-        for(size_t i = this_thread_start_idx; i < this_thread_start_idx + items_per_thread; i++)
+        ROCPRIM_UNROLL
+        for(size_t i = 0; i < items_per_thread; i++)
         {
-            if(d_equal_flags[b_id] != 0 && !binary_predicate(*(input + i), *value))
+            if(d_equal_flags[b_id] != 0
+               && !binary_predicate(*(input + i + this_thread_start_idx), *value))
             {
                 d_equal_flags[b_id] = 0;
             }
@@ -221,6 +223,7 @@ void search_n_bound_detect_kernel(
         {
             const size_t items_this_thread
                 = std::min<size_t>(check_left_size - this_thread_start_idx, items_per_thread);
+
             for(size_t i = this_thread_start_idx; i < this_thread_start_idx + items_this_thread;
                 i++)
             {
@@ -263,6 +266,7 @@ void search_n_bound_detect_kernel(
             {
                 const size_t items_this_thread
                     = std::min<size_t>(check_right_size - this_thread_start_idx, items_per_thread);
+
                 for(size_t i = this_thread_start_idx; i < this_thread_start_idx + items_this_thread;
                     i++)
                 {
@@ -291,10 +295,15 @@ void search_n_bound_detect_kernel(
     return;
 }
 
-template<class Config, class InputIterator, class OutputIterator, class BinaryPredicate>
+template<class Config,
+         bool calculate_storage_size,
+         class InputIterator,
+         class OutputIterator,
+         class BinaryPredicate>
 ROCPRIM_INLINE
 hipError_t search_n_impl(void*          temporary_storage,
                          size_t&        storage_size,
+                         size_t         storage_offset,
                          InputIterator  input,
                          OutputIterator output,
                          const size_t   size,
@@ -322,16 +331,31 @@ hipError_t search_n_impl(void*          temporary_storage,
     size_t equal_blocks_count = count / items_per_block;
     equal_blocks_count        = equal_blocks_count > 0 ? equal_blocks_count - 1 : 0;
 
-    size_t* tmp_output = reinterpret_cast<size_t*>(temporary_storage);
-
     // Start point for time measurements
     std::chrono::steady_clock::time_point start;
 
-    if(temporary_storage == nullptr)
+    // calculate temprory_size
+    if ROCPRIM_IF_CONSTEXPR(calculate_storage_size)
     {
-        storage_size = sizeof(size_t);
-        return hipSuccess;
+        size_t       size_needed = sizeof(size_t) + sizeof(unsigned char);
+        size_t       next_count  = equal_blocks_count;
+        unsigned int next_size   = num_blocks;
+        while(next_count > 1)
+        {
+            size_needed += sizeof(unsigned char) * next_size;
+            next_size  = ceiling_div(next_size, items_per_block);
+            next_count = next_count / items_per_block;
+            next_count = next_count > 0 ? next_count - 1 : 0;
+        }
+
+        if(temporary_storage == nullptr || storage_size != size_needed)
+        {
+            storage_size = size_needed;
+            return hipSuccess;
+        }
     }
+
+    size_t* tmp_output = reinterpret_cast<size_t*>(temporary_storage);
 
     if(count > size)
     {
@@ -373,11 +397,9 @@ hipError_t search_n_impl(void*          temporary_storage,
     else
     {
         // search adjacent equal_blocks & search_n
-        unsigned char* d_equal_flags;
-
-        // TODO: move all these device vars into temporary_storage
-        RETURN_ON_ERROR(hipMallocAsync(&d_equal_flags, num_blocks + 1, stream));
-        unsigned char* d_standard_flag = d_equal_flags + num_blocks;
+        unsigned char* d_standard_flag
+            = reinterpret_cast<unsigned char*>(temporary_storage) + sizeof(*tmp_output);
+        unsigned char* d_equal_flags = d_standard_flag + sizeof(*d_standard_flag) + storage_offset;
 
         // Mark blocks as `equal` or `not equal`
         // Equal means each item in this block satisfy the `binary_predicate`
@@ -386,19 +408,21 @@ hipError_t search_n_impl(void*          temporary_storage,
             <<<num_blocks, block_size, 0, stream>>>(input,
                                                     size,
                                                     d_equal_flags,
+                                                    d_standard_flag,
                                                     value,
                                                     binary_predicate);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_equal_blocks_kernel", size, start);
 
         // Find the adjacent sequence of `equal_blocks` (with false `debug_synchronous`)
-        RETURN_ON_ERROR(search_n_impl<Config>(
+        RETURN_ON_ERROR(search_n_impl<Config, false>(
             temporary_storage,
             storage_size,
-            d_equal_flags,
+            num_blocks, // the offset of d_equal_flags
+            d_equal_flags, // this is the input
             tmp_output, // write equal blocks start index into temp_output
-            num_blocks,
-            equal_blocks_count,
-            d_equal_flags + num_blocks, // assigned to be 1 by `search_n_equal_blocks_kernel`
+            num_blocks, // this is the input size
+            equal_blocks_count, // expected items count in the sequence
+            d_standard_flag, // assigned to be 1 by `search_n_equal_blocks_kernel`
             rocprim::equal_to<unsigned int>{},
             stream,
             false));
@@ -420,11 +444,10 @@ hipError_t search_n_impl(void*          temporary_storage,
                                   rocprim::identity<output_type>(),
                                   stream,
                                   debug_synchronous));
-
-        RETURN_ON_ERROR(hipFree(d_equal_flags));
         return hipSuccess;
     }
 }
+
 } // namespace detail
 
 END_ROCPRIM_NAMESPACE

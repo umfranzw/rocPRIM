@@ -98,7 +98,7 @@ private:
     void create() noexcept
     {
         HIP_CHECK(hipMalloc(&d_value, sizeof(InputType)));
-        HIP_CHECK(hipMalloc(&d_temp_storage, temp_storage_size));
+
         HIP_CHECK(hipMalloc(&d_input, sizeof(InputType) * input.size()));
         HIP_CHECK(hipMalloc(&d_output, sizeof(OutputType)));
         HIP_CHECK(hipMemcpy(d_value, &value, sizeof(InputType), hipMemcpyHostToDevice));
@@ -127,6 +127,19 @@ private:
         self.create();
         auto launch_search_n = [&]()
         {
+            ::rocprim::search_n(self.d_temp_storage,
+                                self.temp_storage_size,
+                                self.d_input,
+                                self.d_output,
+                                self.size,
+                                self.count,
+                                self.d_value,
+                                rocprim::equal_to<InputType>{},
+                                self.stream,
+                                false);
+
+            HIP_CHECK(hipMalloc(&self.d_temp_storage, self.temp_storage_size));
+
             ::rocprim::search_n(self.d_temp_storage,
                                 self.temp_storage_size,
                                 self.d_input,
@@ -211,51 +224,50 @@ inline void add_one_benchmark_search_n(std::vector<benchmark::internal::Benchmar
                                        const hipStream_t                             _stream,
                                        const size_t                                  _size_byte)
 {
-    auto           size       = _size_byte / sizeof(T);
-    std::vector<T> random_vec = get_random_data<T>(size,
-                                                   generate_limits<T>::min(),
-                                                   generate_limits<T>::max(),
-                                                   _seed.get_1());
-    std::vector<T> start_from_middle_vec(size);
-    auto           start_from_middle_count = size / 2;
-    std::fill(start_from_middle_vec.begin(),
-              start_from_middle_vec.begin() + (size - start_from_middle_count),
-              0);
-    std::fill(start_from_middle_vec.begin() + start_from_middle_count,
-              start_from_middle_vec.end(),
-              1);
+    // auto           size       = _size_byte / sizeof(T);
+    // std::vector<T> random_vec = get_random_data<T>(size,
+    //                                                generate_limits<T>::min(),
+    //                                                generate_limits<T>::max(),
+    //                                                _seed.get_1());
+    // std::vector<T> start_from_middle_vec(size);
+    // auto           start_from_middle_count = size / 2;
+    // std::fill(start_from_middle_vec.begin(),
+    //           start_from_middle_vec.begin() + (size - start_from_middle_count),
+    //           0);
+    // std::fill(start_from_middle_vec.begin() + start_from_middle_count,
+    //           start_from_middle_vec.end(),
+    //           1);
 
-    benchmark_search_n<T> bench_random(
-        _seed,
-        _stream,
-        _size_byte,
-        sizeof(T) * 2,
-        get_random_value<T>(0, generate_limits<T>::max(), _seed.get_0()),
-        std::move(random_vec));
-
+    // benchmark_search_n<T> bench_random(
+    //     _seed,
+    //     _stream,
+    //     _size_byte,
+    //     sizeof(T) * 2,
+    //     get_random_value<T>(0, generate_limits<T>::max(), _seed.get_0()),
+    //     std::move(random_vec));
     benchmark_search_n<T> bench_equal_sequence(_seed,
                                                _stream,
                                                _size_byte,
                                                sizeof(T) * 2,
                                                1,
                                                std::vector<T>(_size_byte / sizeof(T), 1));
-    benchmark_search_n<T> start_from_begin(_seed,
-                                           _stream,
-                                           _size_byte,
-                                           _size_byte / 2,
-                                           1,
-                                           std::vector<T>(_size_byte / sizeof(T), 1));
-    benchmark_search_n<T> start_from_middle(_seed,
-                                            _stream,
-                                            _size_byte,
-                                            start_from_middle_count * sizeof(T),
-                                            1,
-                                            std::move(start_from_middle_vec));
-
-    std::vector<benchmark::internal::Benchmark*> bs = {bench_random.bench_register(),
-                                                       bench_equal_sequence.bench_register(),
-                                                       start_from_begin.bench_register(),
-                                                       start_from_middle.bench_register()};
+    // benchmark_search_n<T> start_from_begin(_seed,
+    //                                        _stream,
+    //                                        _size_byte,
+    //                                        _size_byte / 2,
+    //                                        1,
+    //                                        std::vector<T>(_size_byte / sizeof(T), 1));
+    // benchmark_search_n<T> start_from_middle(_seed,
+    //                                         _stream,
+    //                                         _size_byte,
+    //                                         start_from_middle_count * sizeof(T),
+    //                                         1,
+    //                                         std::move(start_from_middle_vec));
+    // std::vector<benchmark::internal::Benchmark*> bs = {bench_random.bench_register(),
+    //                                                    bench_equal_sequence.bench_register(),
+    //                                                    start_from_begin.bench_register(),
+    //                                                    start_from_middle.bench_register()};
+    std::vector<benchmark::internal::Benchmark*> bs = {bench_equal_sequence.bench_register()};
 
     benchmarks.insert(benchmarks.end(), bs.begin(), bs.end());
 }
