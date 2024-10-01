@@ -123,8 +123,8 @@ void search_n_equal_blocks_kernel(
     constexpr auto items_per_thread = params.kernel_config.items_per_thread;
     constexpr auto items_per_block  = block_size * items_per_thread;
 
-    const auto b_id                = block_id<0>();
-    const auto t_id                = block_thread_id<0>();
+    const auto b_id = block_id<0>();
+    const auto t_id = block_thread_id<0>();
 
     // set standard value which will be use later
     if(b_id == 0 && t_id == 0)
@@ -373,6 +373,7 @@ hipError_t search_n_impl(void*          temporary_storage,
     if(equal_blocks_count <= 1)
     { // In this case
         // normal search_n
+        // printf("1\n");
         search_n_start_timer(start, debug_synchronous);
         init_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("init_search_n_kernel", 1, start);
@@ -396,6 +397,7 @@ hipError_t search_n_impl(void*          temporary_storage,
     }
     else
     {
+        // printf("2\n");
         // search adjacent equal_blocks & search_n
         unsigned char* d_standard_flag
             = reinterpret_cast<unsigned char*>(temporary_storage) + sizeof(*tmp_output);
