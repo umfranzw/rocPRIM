@@ -307,7 +307,10 @@ struct device_search_n_benchmark_generator
     struct create_search_n_algorithm
     {};
     // TODO: add implementation
-    static void create(std::vector<std::unique_ptr<config_autotune_interface>>& storage) {}
+    static void create(std::vector<std::unique_ptr<config_autotune_interface>>& storage)
+    {
+        (void)storage;
+    }
 };
 
 #endif // ROCPRIM_BENCHMARK_DEVICE_SEARCH_N_PARALLEL_HPP_
