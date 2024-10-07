@@ -96,9 +96,6 @@ using RocprimDeviceSearchNTestsParams = ::testing::Types<
 
 TYPED_TEST_SUITE(RocprimDeviceSearchNTests, RocprimDeviceSearchNTestsParams);
 
-// #define SINGLE_TEST
-#ifndef SINGLE_TEST
-
 TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
 {
     int device_id = test_common_utils::obtain_device_from_ctest();
@@ -113,6 +110,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
     constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
+
+    size_t pos = 0;
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -136,6 +135,20 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
                                                           0,
                                                           limit_type<input_type>::max(),
                                                           ++seed_value);
+            auto index = 0;
+            if(size > count)
+            {
+                index = test_utils::get_random_value<size_t>(0, size - 1 - count, ++seed_value);
+                std::fill(h_input.begin() + index, h_input.begin() + index + count, h_value);
+            }
+
+            // printf("value:%d, input_size:%d, count:%d, start:%d\n",h_value,h_input.size(),count,index);
+
+            // for(int i = 0; i< 10 ; i++){
+            //     printf("%d ",h_input[i]);
+            // }
+            // printf("\nend\n");
+
             output_type                         h_output;
             test_utils::device_ptr<input_type>  d_input(h_input);
             test_utils::device_ptr<input_type>  d_value(&h_value, 1);
@@ -668,78 +681,3 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
         }
     }
 }
-
-#else
-
-int main()
-{
-    int device_id = test_common_utils::obtain_device_from_ctest();
-
-    HIP_CHECK(hipSetDevice(device_id));
-
-    using input_type  = int8_t;
-    using output_type = size_t;
-    using op_type     = rocprim::equal_to<input_type>;
-    using config      = rocprim::default_config;
-
-    for(int i = 0; i < 10; i++)
-    {
-        op_type     op{};
-        size_t      size   = 2147483648;
-        size_t      count  = 2147483648;
-        size_t      start  = 0;
-        hipStream_t stream = 0; // default
-
-        hipGraph_t              graph;
-        hipGraphExec_t          graph_instance;
-        size_t                  temp_storage_size;
-        input_type              h_value{1};
-        std::vector<input_type> h_input(size, 1);
-        std::fill(h_input.begin(), h_input.begin() + (size - count), h_value);
-        std::fill(h_input.begin() + count, h_input.end(), 0);
-        output_type                         h_output;
-        test_utils::device_ptr<input_type>  d_input(h_input);
-        test_utils::device_ptr<input_type>  d_value(&h_value, 1);
-        test_utils::device_ptr<output_type> d_output(1);
-        test_utils::device_ptr<void>        d_temp_storage;
-
-        // get size
-        HIP_CHECK(rocprim::search_n<config>(0,
-                                            temp_storage_size,
-                                            d_input.get(),
-                                            d_output.get(),
-                                            h_input.size(),
-                                            count,
-                                            nullptr));
-
-        d_temp_storage.resize(temp_storage_size);
-
-        HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
-                                            temp_storage_size,
-                                            d_input.get(),
-                                            d_output.get(),
-                                            h_input.size(),
-                                            count,
-                                            d_value.get(),
-                                            op,
-                                            stream,
-                                            false));
-
-        const auto expected = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
-                              - h_input.cbegin();
-
-        h_output = d_output.load()[0];
-
-        if(h_output == expected)
-        {
-            printf("equal %d : %d\n", h_output, expected);
-        }
-        else
-        {
-            printf("not equal %d : %d\n", h_output, expected);
-        }
-    }
-
-    return 0;
-}
-#endif
