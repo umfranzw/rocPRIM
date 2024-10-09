@@ -163,6 +163,7 @@ void block_search_n_kernel(InputIterator  input,
 template<class Config, class InputIterator, class BinaryPredicate>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
 void search_n_bound_detect_kernel(
+    const unsigned char*                                            d_full_blocks_flags,
     const size_t                                                    full_blocks_start,
     const size_t                                                    num_blocks,
     const size_t                                                    full_blocks_required,
@@ -253,6 +254,22 @@ void search_n_bound_detect_kernel(
             size_t check_right_start = (full_blocks_start + full_blocks_required) * items_per_block;
 
             // detect right bound
+            if(d_full_blocks_flags[full_blocks_start + full_blocks_required] == 1)
+            { // the next block is a full block
+                if(check_right_size <= items_per_block)
+                { // should return the left bound
+                    if(t_id == 0)
+                    {
+                        *output = left_bound;
+                    }
+                    return;
+                }
+                else
+                {
+                    check_right_size -= items_per_block;
+                    check_right_start += items_per_block;
+                }
+            }
 
             if(t_id == 0)
             {
@@ -271,14 +288,6 @@ void search_n_bound_detect_kernel(
                     if(!binary_predicate(*(input + check_right_start + i), *value))
                     {
                         atomic_min(output, i);
-                    }
-                    if(check_right_start + i + items_per_block < right_bound)
-                    {
-                        if(!binary_predicate(*(input + check_right_start + i + items_per_block),
-                                             *value))
-                        {
-                            atomic_min(output, i + items_per_block);
-                        }
                     }
                 }
             }
@@ -450,6 +459,7 @@ hipError_t search_n_impl(void*          temporary_storage,
             h_full_block_start += d_full_blocks_check_input - d_full_blocks_flags;
 
             search_n_bound_detect_kernel<config><<<1, block_size, 0, stream>>>(
+                d_full_blocks_flags,
                 h_full_block_start, // now this pointer stores `full blocks start index`
                 num_blocks,
                 expected_full_blocks_count,
