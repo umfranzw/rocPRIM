@@ -106,17 +106,16 @@ void search_n_kernel(InputIterator                                              
     }
 }
 
-/// \brief This kernel will mark blocks whose elements satisfy the \p binary_predicate.
+/// \brief This kernel will mark blocks in which every element satisfys the condition of \p binary_predicate.
 /// The marks will be stored in d_full_blocks_flags.
 template<class Config, class InputIterator, class BinaryPredicate>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_full_blocks_kernel(
-    InputIterator                                                   input,
-    const size_t                                                    size,
-    unsigned char*                                                  d_full_blocks_flags,
-    unsigned char*                                                  d_standard_flag_value,
-    const typename std::iterator_traits<InputIterator>::value_type* value,
-    BinaryPredicate                                                 binary_predicate)
+void block_search_n_kernel(InputIterator  input,
+                           const size_t   size,
+                           unsigned char* d_full_blocks_flags,
+                           unsigned char* d_standard_flag_value,
+                           const typename std::iterator_traits<InputIterator>::value_type* value,
+                           BinaryPredicate binary_predicate)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -250,7 +249,7 @@ void search_n_bound_detect_kernel(
         else
         {
             // verify the right count
-            size_t check_right_size = items_need_tobe_checked;
+            size_t check_right_size  = items_need_tobe_checked;
             size_t check_right_start = (full_blocks_start + full_blocks_required) * items_per_block;
 
             // detect right bound
@@ -364,9 +363,11 @@ hipError_t search_n_impl(void*          temporary_storage,
 
     if(size == 0 || count <= 0)
     {
-        // return end
+        // return end or begin
         search_n_start_timer(start, debug_synchronous);
         init_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, count <= 0 ? 0 : size);
+        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("init_search_n_kernel", 1, start);
+
         RETURN_ON_ERROR(transform(tmp_output,
                                   output,
                                   1,
@@ -379,7 +380,6 @@ hipError_t search_n_impl(void*          temporary_storage,
     if(expected_full_blocks_count <= 1)
     { // In this case
         // normal search_n
-        // printf("1\n");
         search_n_start_timer(start, debug_synchronous);
         init_search_n_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("init_search_n_kernel", 1, start);
@@ -398,12 +398,11 @@ hipError_t search_n_impl(void*          temporary_storage,
                                   rocprim::identity<output_type>(),
                                   stream,
                                   debug_synchronous));
-
         return hipSuccess;
     }
     else
     {
-        // search adjacent full_blocks & search_n
+        // search for adjacent full_blocks & search_n
         unsigned char* d_standard_flag_value
             = reinterpret_cast<unsigned char*>(temporary_storage) + sizeof(*tmp_output);
         unsigned char* d_full_blocks_flags
@@ -412,19 +411,19 @@ hipError_t search_n_impl(void*          temporary_storage,
         // Mark blocks as `equal` or `not equal`
         // Equal means each item in this block satisfy the `binary_predicate`
         search_n_start_timer(start, debug_synchronous);
-        search_n_full_blocks_kernel<config>
-            <<<num_blocks, block_size, 0, stream>>>(input,
-                                                    size,
-                                                    d_full_blocks_flags,
-                                                    d_standard_flag_value,
-                                                    value,
-                                                    binary_predicate);
-        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_full_blocks_kernel", size, start);
+        block_search_n_kernel<config><<<num_blocks, block_size, 0, stream>>>(input,
+                                                                             size,
+                                                                             d_full_blocks_flags,
+                                                                             d_standard_flag_value,
+                                                                             value,
+                                                                             binary_predicate);
+        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("block_search_n_kernel", size, start);
 
-        size_t full_flags_size         = num_blocks;
-        size_t full_flags_start_offset = 0;
-        size_t h_full_block_start;
-        size_t h_tmp_output;
+        const size_t   full_flags_size           = num_blocks;
+        size_t         full_flags_check_size     = full_flags_size;
+        unsigned char* d_full_blocks_check_input = d_full_blocks_flags;
+        size_t         h_full_block_start        = full_flags_size;
+        size_t         h_tmp_output;
 
         while(1)
         {
@@ -433,11 +432,11 @@ hipError_t search_n_impl(void*          temporary_storage,
                 temporary_storage,
                 storage_size,
                 num_blocks, // the next temp storage offset of d_full_blocks_flags
-                d_full_blocks_flags, // this is the input
+                d_full_blocks_check_input, // this is the input
                 tmp_output, // write full blocks start index into temp_output
-                full_flags_size, // this is the input size
+                full_flags_check_size, // this is the input size
                 expected_full_blocks_count, // expected items count in the sequence
-                d_standard_flag_value, // assigned to be 1 by `search_n_full_blocks_kernel`
+                d_standard_flag_value, // assigned to be 1 by `block_search_n_kernel`
                 rocprim::equal_to<unsigned int>{},
                 stream,
                 false));
@@ -447,7 +446,8 @@ hipError_t search_n_impl(void*          temporary_storage,
                                      sizeof(*tmp_output),
                                      hipMemcpyDeviceToHost,
                                      stream));
-            h_full_block_start += full_flags_start_offset;
+
+            h_full_block_start += d_full_blocks_check_input - d_full_blocks_flags;
 
             search_n_bound_detect_kernel<config><<<1, block_size, 0, stream>>>(
                 h_full_block_start, // now this pointer stores `full blocks start index`
@@ -469,11 +469,13 @@ hipError_t search_n_impl(void*          temporary_storage,
                                      hipMemcpyDeviceToHost,
                                      stream));
 
-            if(h_tmp_output == size && h_full_block_start + expected_full_blocks_count < num_blocks)
+            if(h_tmp_output == size
+               && h_full_block_start + expected_full_blocks_count < full_flags_size)
             {
-                full_flags_size -= h_full_block_start + expected_full_blocks_count;
-                d_full_blocks_flags += h_full_block_start + expected_full_blocks_count;
-                full_flags_start_offset += h_full_block_start + expected_full_blocks_count;
+                d_full_blocks_check_input
+                    = d_full_blocks_flags + h_full_block_start + expected_full_blocks_count;
+                full_flags_check_size
+                    = full_flags_size - (h_full_block_start + expected_full_blocks_count);
             }
             else
             {

@@ -111,8 +111,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
-    size_t pos = 0;
-
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -141,13 +139,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
                 index = test_utils::get_random_value<size_t>(0, size - 1 - count, ++seed_value);
                 std::fill(h_input.begin() + index, h_input.begin() + index + count, h_value);
             }
-
-            // printf("value:%d, input_size:%d, count:%d, start:%d\n",h_value,h_input.size(),count,index);
-
-            // for(int i = 0; i< 10 ; i++){
-            //     printf("%d ",h_input[i]);
-            // }
-            // printf("\nend\n");
 
             output_type                         h_output;
             test_utils::device_ptr<input_type>  d_input(h_input);
@@ -621,6 +612,366 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
             std::fill(h_input.begin(), h_input.begin() + (size - count), 0);
             std::fill(h_input.begin() + count, h_input.end(), h_value);
             output_type                         h_output;
+            test_utils::device_ptr<input_type>  d_input(h_input);
+            test_utils::device_ptr<input_type>  d_value(&h_value, 1);
+            test_utils::device_ptr<output_type> d_output(1);
+            test_utils::device_ptr<void>        d_temp_storage;
+
+            SCOPED_TRACE(testing::Message() << "with size = " << h_input.size());
+            SCOPED_TRACE(testing::Message() << "with count = " << count);
+            SCOPED_TRACE(testing::Message() << "with value = " << h_value);
+
+            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            {
+                // Default stream does not support hipGraph stream capture, so create one
+                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
+            }
+            // get size
+            HIP_CHECK(rocprim::search_n<config>(0,
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                nullptr));
+
+            d_temp_storage.resize(temp_storage_size);
+
+            HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                d_value.get(),
+                                                op,
+                                                stream,
+                                                debug_synchronous));
+
+            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            {
+                HIP_CHECK(hipStreamSynchronize(stream));
+            }
+
+            const auto expected
+                = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
+                  - h_input.cbegin();
+
+            h_output = d_output.load()[0];
+
+            ASSERT_EQ(h_output, expected);
+
+            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            {
+                HIP_CHECK(hipStreamDestroy(stream));
+            }
+
+            (void)graph;
+            (void)graph_instance;
+            (void)use_indirect_iterator;
+        }
+    }
+}
+
+TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
+{
+    int device_id = test_common_utils::obtain_device_from_ctest();
+
+    HIP_CHECK(hipSetDevice(device_id));
+
+    using input_type  = typename TestFixture::input_type;
+    using output_type = typename TestFixture::output_type;
+    using op_type     = typename TestFixture::op_type;
+    using config      = typename TestFixture::config;
+
+    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
+    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    op_type        op{};
+
+    for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
+    {
+        unsigned int seed_value
+            = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
+
+        for(const auto size : test_utils::get_sizes(seed_value))
+        {
+            using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
+
+            hipGraph_t                   graph;
+            hipGraphExec_t               graph_instance;
+            size_t                       temp_storage_size;
+            hipStream_t                  stream = 0; // default
+            rocprim::detail::target_arch target_arch;
+            HIP_CHECK(rocprim::detail::host_target_arch(stream, target_arch));
+            const auto params = rocprim::detail::dispatch_target_arch<wrapped_config>(target_arch);
+            const unsigned int block_size       = params.kernel_config.block_size;
+            const unsigned int items_per_thread = params.kernel_config.items_per_thread;
+            const unsigned int items_per_block  = block_size * items_per_thread;
+
+            /// Will do test like this:
+            ///     |----------------------------------- size ------------------------------------|
+            ///     |----- Item/block ----|----- Item/block ----|----- Item/block ----|----- Item/|
+            ///     |--------count--------|
+            ///     |111111111111111111110|111111111111111111110|111111111111111111111|11111111111|
+
+            size_t                  count = 0;
+            input_type              h_value{1};
+            input_type              h_noise{0};
+            std::vector<input_type> h_input(size, h_value);
+            output_type             h_output;
+
+            if(size > items_per_block)
+            {
+                count            = items_per_block;
+                size_t cur_tile  = 0;
+                size_t last_tile = size / count - 1;
+                while(cur_tile != last_tile)
+                {
+                    h_input[cur_tile * count + count - 1] = h_noise;
+                    ++cur_tile;
+                }
+            }
+
+            test_utils::device_ptr<input_type>  d_input(h_input);
+            test_utils::device_ptr<input_type>  d_value(&h_value, 1);
+            test_utils::device_ptr<output_type> d_output(1);
+            test_utils::device_ptr<void>        d_temp_storage;
+
+            SCOPED_TRACE(testing::Message() << "with size = " << h_input.size());
+            SCOPED_TRACE(testing::Message() << "with count = " << count);
+            SCOPED_TRACE(testing::Message() << "with value = " << h_value);
+
+            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            {
+                // Default stream does not support hipGraph stream capture, so create one
+                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
+            }
+            // get size
+            HIP_CHECK(rocprim::search_n<config>(0,
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                nullptr));
+
+            d_temp_storage.resize(temp_storage_size);
+
+            HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                d_value.get(),
+                                                op,
+                                                stream,
+                                                debug_synchronous));
+
+            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            {
+                HIP_CHECK(hipStreamSynchronize(stream));
+            }
+
+            const auto expected
+                = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
+                  - h_input.cbegin();
+
+            h_output = d_output.load()[0];
+
+            ASSERT_EQ(h_output, expected);
+
+            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            {
+                HIP_CHECK(hipStreamDestroy(stream));
+            }
+
+            (void)graph;
+            (void)graph_instance;
+            (void)use_indirect_iterator;
+        }
+    }
+}
+
+TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
+{
+    int device_id = test_common_utils::obtain_device_from_ctest();
+
+    HIP_CHECK(hipSetDevice(device_id));
+
+    using input_type  = typename TestFixture::input_type;
+    using output_type = typename TestFixture::output_type;
+    using op_type     = typename TestFixture::op_type;
+    using config      = typename TestFixture::config;
+
+    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
+    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    op_type        op{};
+
+    for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
+    {
+        unsigned int seed_value
+            = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
+
+        for(const auto size : test_utils::get_sizes(seed_value))
+        {
+            using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
+
+            hipGraph_t                   graph;
+            hipGraphExec_t               graph_instance;
+            size_t                       temp_storage_size;
+            hipStream_t                  stream = 0; // default
+            rocprim::detail::target_arch target_arch;
+            HIP_CHECK(rocprim::detail::host_target_arch(stream, target_arch));
+            const auto params = rocprim::detail::dispatch_target_arch<wrapped_config>(target_arch);
+            const unsigned int block_size       = params.kernel_config.block_size;
+            const unsigned int items_per_thread = params.kernel_config.items_per_thread;
+            const unsigned int items_per_block  = block_size * items_per_thread;
+
+            /// Will do test like this:
+            ///     |----------------------------------- size ------------------------------------|
+            ///     |----- Item/block ----|----- Item/block ----|----- Item/block ----|----- Item/|
+            ///     |--------count------------------------------|
+            ///     |1111111111111111111111111111111111111111110|111111111111111111111111111111111|
+
+            size_t                  count = 0;
+            input_type              h_value{1};
+            input_type              h_noise{0};
+            std::vector<input_type> h_input(size, h_value);
+            output_type             h_output;
+
+            if(size > items_per_block * 2)
+            {
+                count            = items_per_block * 2;
+                size_t cur_tile  = 0;
+                size_t last_tile = size / count - 1;
+                while(cur_tile != last_tile)
+                {
+                    h_input[cur_tile * count + count - 1] = h_noise;
+                    ++cur_tile;
+                }
+            }
+
+            test_utils::device_ptr<input_type>  d_input(h_input);
+            test_utils::device_ptr<input_type>  d_value(&h_value, 1);
+            test_utils::device_ptr<output_type> d_output(1);
+            test_utils::device_ptr<void>        d_temp_storage;
+
+            SCOPED_TRACE(testing::Message() << "with size = " << h_input.size());
+            SCOPED_TRACE(testing::Message() << "with count = " << count);
+            SCOPED_TRACE(testing::Message() << "with value = " << h_value);
+
+            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            {
+                // Default stream does not support hipGraph stream capture, so create one
+                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
+            }
+            // get size
+            HIP_CHECK(rocprim::search_n<config>(0,
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                nullptr));
+
+            d_temp_storage.resize(temp_storage_size);
+
+            HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
+                                                temp_storage_size,
+                                                d_input.get(),
+                                                d_output.get(),
+                                                h_input.size(),
+                                                count,
+                                                d_value.get(),
+                                                op,
+                                                stream,
+                                                debug_synchronous));
+
+            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            {
+                HIP_CHECK(hipStreamSynchronize(stream));
+            }
+
+            const auto expected
+                = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
+                  - h_input.cbegin();
+
+            h_output = d_output.load()[0];
+
+            ASSERT_EQ(h_output, expected);
+
+            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            {
+                HIP_CHECK(hipStreamDestroy(stream));
+            }
+
+            (void)graph;
+            (void)graph_instance;
+            (void)use_indirect_iterator;
+        }
+    }
+}
+
+TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
+{
+    int device_id = test_common_utils::obtain_device_from_ctest();
+
+    HIP_CHECK(hipSetDevice(device_id));
+
+    using input_type  = typename TestFixture::input_type;
+    using output_type = typename TestFixture::output_type;
+    using op_type     = typename TestFixture::op_type;
+    using config      = typename TestFixture::config;
+
+    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
+    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    op_type        op{};
+
+    for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
+    {
+        unsigned int seed_value
+            = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
+
+        for(const auto size : test_utils::get_sizes(seed_value))
+        {
+            using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
+
+            hipGraph_t                   graph;
+            hipGraphExec_t               graph_instance;
+            size_t                       temp_storage_size;
+            hipStream_t                  stream = 0; // default
+            rocprim::detail::target_arch target_arch;
+            HIP_CHECK(rocprim::detail::host_target_arch(stream, target_arch));
+            const auto params = rocprim::detail::dispatch_target_arch<wrapped_config>(target_arch);
+            const unsigned int block_size       = params.kernel_config.block_size;
+            const unsigned int items_per_thread = params.kernel_config.items_per_thread;
+            const unsigned int items_per_block  = block_size * items_per_thread;
+
+            /// Will do test like this:
+            ///     |----------------------------------- size ----------------------------------------------------------------------------------------------------------------|
+            ///     |----- Item/block ----|----- Item/block ----|----- Item/block ----|----- Item/block ----|----- Item/block ----|----- Item/block ----|----- Item/block ----|
+            ///     |------------------------------count------------------------------|------------------------------count------------------------------|
+            ///     |11111111111111111111111111111111111111111111111111111111111111110|11111111111111111111111111111111111111111111111111111111111111111|111111111111111111111|
+
+            size_t                  count = 0;
+            input_type              h_value{1};
+            input_type              h_noise{0};
+            std::vector<input_type> h_input(size, h_value);
+            output_type             h_output;
+
+            if(size > items_per_block * 3)
+            {
+                count            = items_per_block * 3;
+                size_t cur_tile  = 0;
+                size_t last_tile = size / count - 1;
+                while(cur_tile != last_tile)
+                {
+                    h_input[cur_tile * count + count - 1] = h_noise;
+                    ++cur_tile;
+                }
+            }
+
             test_utils::device_ptr<input_type>  d_input(h_input);
             test_utils::device_ptr<input_type>  d_value(&h_value, 1);
             test_utils::device_ptr<output_type> d_output(1);

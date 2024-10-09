@@ -72,7 +72,23 @@ constexpr bool is_type_arr_end<T, void_type<typename T::next>> = false;
 
 } // namespace
 
-template<class InputType, class OutputType, bool positive_result>
+enum class benchmark_search_n_mode
+{
+    NORMAL = 0,
+    NOISE  = 1,
+};
+
+inline std::string to_string(benchmark_search_n_mode e) noexcept
+{
+    switch(e)
+    {
+        case benchmark_search_n_mode::NORMAL: return "NORMAL";
+        case benchmark_search_n_mode::NOISE: return "NOISE";
+        default: return "UNKNOWN";
+    }
+}
+
+template<class InputType, class OutputType, benchmark_search_n_mode mode>
 class benchmark_search_n
 {
 public:
@@ -102,27 +118,64 @@ private:
 
     void create() noexcept
     {
-        input.resize(size);
-        if ROCPRIM_IF_CONSTEXPR(positive_result)
+        switch(mode)
         {
-            if(start_pos + count < size)
-            {
-                std::fill(input.begin(), input.begin() + start_pos, 0);
-                std::fill(input.begin() + start_pos, input.begin() + count + start_pos, value);
-                std::fill(input.begin() + count + start_pos, input.end(), 0);
-            }
-            else
-            {
-                std::fill(input.begin(), input.end(), 0);
-            }
-        }
-        else
-        {
-            std::fill(input.begin(), input.end(), 0);
+            case benchmark_search_n_mode::NORMAL:
+                {
+                    input.resize(size);
+                    if(start_pos + count < size)
+                    {
+                        std::fill(input.begin(), input.begin() + start_pos, 0);
+                        std::fill(input.begin() + start_pos,
+                                  input.begin() + count + start_pos,
+                                  value);
+                        std::fill(input.begin() + count + start_pos, input.end(), 0);
+                    }
+                    else
+                    {
+                        std::fill(input.begin(), input.end(), 0);
+                    }
+                    break;
+                }
+            case benchmark_search_n_mode::NOISE:
+                {
+                    using input_type = InputType;
+                    using config     = rocprim::default_config;
+                    using wrapped_config
+                        = rocprim::detail::wrapped_search_n_config<config, input_type>;
+
+                    hipStream_t                  stream = 0; // default
+                    rocprim::detail::target_arch target_arch;
+                    HIP_CHECK(rocprim::detail::host_target_arch(stream, target_arch));
+                    const auto params
+                        = rocprim::detail::dispatch_target_arch<wrapped_config>(target_arch);
+                    const unsigned int block_size       = params.kernel_config.block_size;
+                    const unsigned int items_per_thread = params.kernel_config.items_per_thread;
+                    const unsigned int items_per_block  = block_size * items_per_thread;
+
+                    input_type h_noise{0};
+                    input = std::vector<input_type>(size, value);
+
+                    if(size > items_per_block * count)
+                    {
+                        count            = items_per_block * count;
+                        size_t cur_tile  = 0;
+                        size_t last_tile = size / count - 1;
+                        while(cur_tile != last_tile)
+                        {
+                            input[cur_tile * count + count - 1] = h_noise;
+                            ++cur_tile;
+                        }
+                    }
+                    break;
+                }
+            default:
+                {
+                    break;
+                }
         }
 
         HIP_CHECK(hipMalloc(&d_value, sizeof(InputType)));
-
         HIP_CHECK(hipMalloc(&d_input, sizeof(InputType) * input.size()));
         HIP_CHECK(hipMalloc(&d_output, sizeof(OutputType)));
         HIP_CHECK(hipMemcpy(d_value, &value, sizeof(InputType), hipMemcpyHostToDevice));
@@ -217,11 +270,12 @@ private:
     }
 
 public:
-    benchmark_search_n(const managed_seed _seed,
-                       const hipStream_t  _stream,
-                       const size_t       _size_byte,
-                       const size_t       _count_byte,
-                       const size_t       _start_pos_byte) noexcept
+    benchmark_search_n(
+        const managed_seed _seed,
+        const hipStream_t  _stream,
+        const size_t       _size_byte,
+        const size_t       _count_byte, // for NOISE benchmarks, this is the multiple of count
+        const size_t       _start_pos_byte) noexcept
         : seed(_seed)
         , stream(_stream)
         , size_byte(_size_byte)
@@ -230,9 +284,24 @@ public:
         , value{1}
         , input()
     {
-        size      = _size_byte / sizeof(InputType);
-        count     = _count_byte / sizeof(InputType);
-        start_pos = _start_pos_byte / sizeof(InputType);
+
+        switch(mode)
+        {
+            case benchmark_search_n_mode::NORMAL:
+                {
+                    size      = _size_byte / sizeof(InputType);
+                    count     = _count_byte / sizeof(InputType);
+                    start_pos = _start_pos_byte / sizeof(InputType);
+                    break;
+                }
+            case benchmark_search_n_mode::NOISE:
+                {
+                    size      = _size_byte / sizeof(InputType);
+                    start_pos = _start_pos_byte / sizeof(InputType);
+                    count     = _count_byte;
+                    break;
+                }
+        }
     }
 
     benchmark::internal::Benchmark* bench_register() const noexcept
@@ -241,7 +310,7 @@ public:
             bench_naming::format_name(
                 "{lvl:device,algo:search_n,input_type:" + std::string(typeid(InputType).name())
                 + ",size:" + std::to_string(size) + ",count:" + std::to_string(count)
-                + ",start_pos:" + std::to_string(start_pos) + ",cfg:default_config}")
+                + ",mode:" + to_string(mode) + ",cfg:default_config}")
                 .c_str(),
             run,
             *this);
@@ -254,19 +323,27 @@ inline void add_one_benchmark_search_n(std::vector<benchmark::internal::Benchmar
                                        const hipStream_t                             _stream,
                                        const size_t                                  _size_byte)
 {
-    benchmark_search_n<T, size_t, true> all_1_start_from_0(_seed,
-                                                           _stream,
-                                                           _size_byte,
-                                                           _size_byte,
-                                                           0);
-    benchmark_search_n<T, size_t, true> half_1_start_from_mid(_seed,
-                                                              _stream,
-                                                              _size_byte,
-                                                              _size_byte / 2,
-                                                              _size_byte / 2);
-
-    std::vector<benchmark::internal::Benchmark*> bs
-        = {all_1_start_from_0.bench_register(), half_1_start_from_mid.bench_register()};
+    benchmark_search_n<T, size_t, benchmark_search_n_mode::NORMAL> all_1_start_from_0(_seed,
+                                                                                      _stream,
+                                                                                      _size_byte,
+                                                                                      _size_byte,
+                                                                                      0);
+    benchmark_search_n<T, size_t, benchmark_search_n_mode::NORMAL>
+        half_1_start_from_mid(_seed, _stream, _size_byte, _size_byte / 2, _size_byte / 2);
+    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> noise1(_seed,
+                                                                         _stream,
+                                                                         _size_byte,
+                                                                         1,
+                                                                         0);
+    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> noise3(_seed,
+                                                                         _stream,
+                                                                         _size_byte,
+                                                                         2,
+                                                                         0);
+    std::vector<benchmark::internal::Benchmark*> bs = {all_1_start_from_0.bench_register(),
+                                                       half_1_start_from_mid.bench_register(),
+                                                       noise1.bench_register(),
+                                                       noise3.bench_register()};
 
     benchmarks.insert(benchmarks.end(), bs.begin(), bs.end());
 }
