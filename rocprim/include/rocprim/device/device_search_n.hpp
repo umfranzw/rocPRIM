@@ -96,7 +96,6 @@ hipError_t search_n(void*          temporary_storage,
 {
     return detail::search_n_impl<Config, true>(temporary_storage,
                                                storage_size,
-                                               0, // first offset must be 0
                                                input,
                                                output,
                                                size,
