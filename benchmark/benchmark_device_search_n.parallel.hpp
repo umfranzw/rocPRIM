@@ -71,7 +71,7 @@ template<typename T>
 constexpr bool is_type_arr_end<T, void_type<typename T::next>> = false;
 
 template<class Config, class InputType>
-unsigned int search_n_get_item_per_block()
+inline unsigned int search_n_get_item_per_block()
 {
     using input_type     = InputType;
     using config         = Config;
@@ -86,8 +86,6 @@ unsigned int search_n_get_item_per_block()
     const unsigned int items_per_block  = block_size * items_per_thread;
     return items_per_block;
 }
-
-} // namespace
 
 enum class benchmark_search_n_mode
 {
@@ -104,6 +102,8 @@ inline std::string to_string(benchmark_search_n_mode e) noexcept
         default: return "UNKNOWN";
     }
 }
+
+} // namespace
 
 template<class InputType, class OutputType, benchmark_search_n_mode mode>
 class benchmark_search_n

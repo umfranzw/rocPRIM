@@ -1194,7 +1194,8 @@ namespace detail
 {
 struct search_n_config_params
 {
-    kernel_config_params kernel_config{};
+    size_t               threshold;
+    kernel_config_params kernel_config;
 };
 } // namespace detail
 
@@ -1208,7 +1209,7 @@ struct search_n_config : public detail::search_n_config_params
 #ifndef DOXYGEN_DOCUMENTATION_BUILD
     constexpr search_n_config()
         : detail::search_n_config_params{
-            {BlockSize, ItemsPerThread, 0}
+            6, {BlockSize, ItemsPerThread, 0}
     }
     {}
 #endif
