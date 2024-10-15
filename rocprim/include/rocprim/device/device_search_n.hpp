@@ -94,16 +94,17 @@ hipError_t search_n(void*          temporary_storage,
                     const hipStream_t     stream            = static_cast<hipStream_t>(0),
                     const bool            debug_synchronous = false)
 {
-    return detail::search_n_impl<Config, true>(temporary_storage,
-                                               storage_size,
-                                               input,
-                                               output,
-                                               size,
-                                               count,
-                                               value,
-                                               binary_predicate,
-                                               stream,
-                                               debug_synchronous);
+    // in most cases, the search_n_impl_thread is faster than
+    return detail::search_n_impl_thread<Config>(temporary_storage,
+                                                storage_size,
+                                                input,
+                                                output,
+                                                size,
+                                                count,
+                                                value,
+                                                binary_predicate,
+                                                stream,
+                                                debug_synchronous);
 }
 
 END_ROCPRIM_NAMESPACE
