@@ -342,68 +342,58 @@ inline void add_one_benchmark_search_n(std::vector<benchmark::internal::Benchmar
                                        const hipStream_t                             _stream,
                                        const size_t                                  _size_byte)
 {
+    benchmark_search_n<T, size_t, benchmark_search_n_mode::NORMAL> start_from_0(_seed,
+                                                                                _stream,
+                                                                                _size_byte,
+                                                                                _size_byte,
+                                                                                0);
+    benchmark_search_n<T, size_t, benchmark_search_n_mode::NORMAL> start_from_mid(_seed,
+                                                                                  _stream,
+                                                                                  _size_byte,
+                                                                                  _size_byte / 2,
+                                                                                  _size_byte / 2);
     // small count test
     benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> small_count6(_seed,
                                                                                _stream,
                                                                                _size_byte,
                                                                                1, // count times
                                                                                6);
-    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> small_count10(_seed,
-                                                                                _stream,
-                                                                                _size_byte,
-                                                                                1, // count times
-                                                                                10);
-    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> small_count256(_seed,
-                                                                                 _stream,
-                                                                                 _size_byte,
-                                                                                 1, // count times
-                                                                                 256);
-    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> small_count512(_seed,
-                                                                                 _stream,
-                                                                                 _size_byte,
-                                                                                 1, // count times
-                                                                                 512);
     benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> small_count1023(_seed,
                                                                                   _stream,
                                                                                   _size_byte,
                                                                                   1, // count times
                                                                                   1023);
     // mid count test
-    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> mid_count1024(_seed,
-                                                                                _stream,
-                                                                                _size_byte,
-                                                                                1, // count times
-                                                                                1024);
-    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> mid_count1536(_seed,
-                                                                                _stream,
-                                                                                _size_byte,
-                                                                                1, // count times
-                                                                                1536);
     benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> mid_count2047(_seed,
                                                                                 _stream,
                                                                                 _size_byte,
                                                                                 1, // count times
                                                                                 2047);
-    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> mid_count2560(_seed,
-                                                                                _stream,
-                                                                                _size_byte,
-                                                                                1, // count times
-                                                                                2560);
     benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> mid_count4095(_seed,
                                                                                 _stream,
                                                                                 _size_byte,
                                                                                 1, // count times
                                                                                 4095);
-    std::vector<benchmark::internal::Benchmark*> bs = {small_count6.bench_register(),
-                                                       small_count10.bench_register(),
-                                                       small_count256.bench_register(),
-                                                       small_count512.bench_register(),
+    // big input
+    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> big_count1(_seed,
+                                                                             _stream,
+                                                                             _size_byte,
+                                                                             3, // count times
+                                                                             (size_t)-1);
+    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> big_count6(_seed,
+                                                                             _stream,
+                                                                             _size_byte,
+                                                                             6, // count times
+                                                                             (size_t)-1);
+
+    std::vector<benchmark::internal::Benchmark*> bs = {start_from_0.bench_register(),
+                                                       start_from_mid.bench_register(),
+                                                       small_count6.bench_register(),
                                                        small_count1023.bench_register(),
-                                                       mid_count1024.bench_register(),
-                                                       mid_count1536.bench_register(),
                                                        mid_count2047.bench_register(),
-                                                       mid_count2560.bench_register(),
-                                                       mid_count4095.bench_register()};
+                                                       mid_count4095.bench_register(),
+                                                       big_count1.bench_register(),
+                                                       big_count6.bench_register()};
 
     benchmarks.insert(benchmarks.end(), bs.begin(), bs.end());
 }
