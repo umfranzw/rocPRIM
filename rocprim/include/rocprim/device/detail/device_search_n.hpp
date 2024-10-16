@@ -43,7 +43,7 @@ inline void search_n_start_timer(std::chrono::steady_clock::time_point& start,
 }
 
 ROCPRIM_KERNEL __launch_bounds__(1)
-void search_n_init_kernel(size_t* output, const size_t target)
+void search_n_init_kernel(size_t* __restrict__ output, const size_t target)
 {
     *output = target;
 }
@@ -52,8 +52,8 @@ void search_n_init_kernel(size_t* output, const size_t target)
 /// but the efficiency is insufficient when `items_per_block is` too large.
 template<class Config, class InputIterator, class BinaryPredicate>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_normal_kernel(InputIterator                                                   input,
-                            size_t*                                                         output,
+void search_n_normal_kernel(InputIterator input,
+                            size_t* __restrict__ output,
                             const size_t                                                    size,
                             const size_t                                                    count,
                             const typename std::iterator_traits<InputIterator>::value_type* value,
@@ -105,8 +105,8 @@ void search_n_find_heads_kernel(
     const size_t                                                    size,
     const typename std::iterator_traits<InputIterator>::value_type* value,
     const BinaryPredicate                                           binary_predicate,
-    size_t*                                                         unfiltered_heads,
-    const size_t                                                    group_size)
+    size_t* __restrict__ unfiltered_heads,
+    const size_t group_size)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -137,12 +137,12 @@ void search_n_find_heads_kernel(
 
 template<class Config>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_heads_filter_kernel(const size_t  size,
-                                  const size_t  count,
-                                  const size_t* heads,
-                                  const size_t  heads_size,
-                                  size_t*       filtered_heads,
-                                  size_t*       filtered_heads_size)
+void search_n_heads_filter_kernel(const size_t size,
+                                  const size_t count,
+                                  const size_t* __restrict__ heads,
+                                  const size_t heads_size,
+                                  size_t* __restrict__ filtered_heads,
+                                  size_t* __restrict__ filtered_heads_size)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -180,7 +180,8 @@ void search_n_reduce_kernel(InputIterator                                       
                             const size_t                                                    count,
                             const typename std::iterator_traits<InputIterator>::value_type* value,
                             const BinaryPredicate binary_predicate,
-                            size_t*               heads)
+                            size_t* __restrict__ heads,
+                            size_t num_heads)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -189,14 +190,20 @@ void search_n_reduce_kernel(InputIterator                                       
 
     const size_t this_thread_start_idx
         = (block_id<0>() * items_per_block) + (block_thread_id<0>() * items_per_thread);
-    for(size_t i = 0; i < items_per_block; i++)
+
+    for(size_t global_idx = this_thread_start_idx;
+        global_idx < this_thread_start_idx + items_per_block;
+        global_idx++)
     {
-        const size_t g_id = i / count /*group_size*/;
+        const size_t g_id /*group id*/ = global_idx / count /*group_size*/;
+        if(g_id >= num_heads)
+        {
+            return;
+        }
         const size_t check_head
             = heads[g_id] + 1; // the `head` is already checked, so we check the next value here
         const size_t check_count = count - 1;
-        const size_t idx
-            = check_head + ((this_thread_start_idx + i /*global_idx*/) % count /*group_idx*/);
+        const size_t idx         = check_head + (global_idx % count);
 
         if((idx >= size) || (idx >= (check_head + check_count)))
         {
@@ -212,7 +219,9 @@ void search_n_reduce_kernel(InputIterator                                       
 
 template<class Config>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_min_kernel(const size_t* heads, const size_t heads_size, size_t* output)
+void search_n_min_kernel(const size_t* __restrict__ heads,
+                         const size_t heads_size,
+                         size_t* __restrict__ output)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -359,6 +368,11 @@ hipError_t search_n_impl(void*          temporary_storage,
         // check if there are no more valid heads, otherwise will return directly
         if(h_filtered_heads_size != 0)
         {
+            size_t* check_val = nullptr;
+            HIP_CHECK(hipMallocAsync(&check_val, sizeof(size_t), stream));
+            HIP_CHECK(hipMemsetAsync(check_val, -1, sizeof(size_t), stream));
+            HIP_CHECK(hipStreamSynchronize(stream));
+
             // check if any valid heads make a valid sequence
             const size_t num_blocks_for_reduce
                 = ceiling_div(h_filtered_heads_size * count /*group_size*/, items_per_block);
@@ -369,7 +383,8 @@ hipError_t search_n_impl(void*          temporary_storage,
                                                                    count,
                                                                    value,
                                                                    binary_predicate,
-                                                                   filtered_heads);
+                                                                   filtered_heads,
+                                                                   h_filtered_heads_size);
             ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_reduce_kernel",
                                                         h_filtered_heads_size,
                                                         start);
