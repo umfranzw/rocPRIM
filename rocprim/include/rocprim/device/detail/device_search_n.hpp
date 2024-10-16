@@ -52,13 +52,12 @@ void search_n_init_kernel(size_t* output, const size_t target)
 /// but the efficiency is insufficient when `items_per_block is` too large.
 template<class Config, class InputIterator, class BinaryPredicate>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_normal_kernel(
-    InputIterator input,
-    size_t* __restrict__ output,
-    const size_t size,
-    const size_t count,
-    const typename std::iterator_traits<InputIterator>::value_type* __restrict__ value,
-    const BinaryPredicate binary_predicate)
+void search_n_normal_kernel(InputIterator                                                   input,
+                            size_t*                                                         output,
+                            const size_t                                                    size,
+                            const size_t                                                    count,
+                            const typename std::iterator_traits<InputIterator>::value_type* value,
+                            const BinaryPredicate binary_predicate)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -102,12 +101,12 @@ void search_n_normal_kernel(
 template<class Config, class InputIterator, class BinaryPredicate>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
 void search_n_find_heads_kernel(
-    InputIterator input,
-    const size_t  size,
-    const typename std::iterator_traits<InputIterator>::value_type* __restrict__ value,
-    const BinaryPredicate binary_predicate,
-    size_t* __restrict__ unfiltered_heads,
-    const size_t group_size)
+    InputIterator                                                   input,
+    const size_t                                                    size,
+    const typename std::iterator_traits<InputIterator>::value_type* value,
+    const BinaryPredicate                                           binary_predicate,
+    size_t*                                                         unfiltered_heads,
+    const size_t                                                    group_size)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -138,12 +137,12 @@ void search_n_find_heads_kernel(
 
 template<class Config>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_heads_filter_kernel(const size_t size,
-                                  const size_t count,
-                                  const size_t* __restrict__ heads,
-                                  const size_t heads_size,
-                                  size_t* __restrict__ filtered_heads,
-                                  size_t* __restrict__ filtered_heads_size)
+void search_n_heads_filter_kernel(const size_t  size,
+                                  const size_t  count,
+                                  const size_t* heads,
+                                  const size_t  heads_size,
+                                  size_t*       filtered_heads,
+                                  size_t*       filtered_heads_size)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -176,13 +175,12 @@ void search_n_heads_filter_kernel(const size_t size,
 
 template<class Config, class InputIterator, class BinaryPredicate>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_reduce_kernel(
-    InputIterator input,
-    const size_t  size,
-    const size_t  count,
-    const typename std::iterator_traits<InputIterator>::value_type* __restrict__ value,
-    const BinaryPredicate binary_predicate,
-    size_t* __restrict__ heads)
+void search_n_reduce_kernel(InputIterator                                                   input,
+                            const size_t                                                    size,
+                            const size_t                                                    count,
+                            const typename std::iterator_traits<InputIterator>::value_type* value,
+                            const BinaryPredicate binary_predicate,
+                            size_t*               heads)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -214,9 +212,7 @@ void search_n_reduce_kernel(
 
 template<class Config>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_min_kernel(const size_t* __restrict__ heads,
-                         const size_t heads_size,
-                         size_t* __restrict__ output)
+void search_n_min_kernel(const size_t* heads, const size_t heads_size, size_t* output)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;

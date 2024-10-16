@@ -107,7 +107,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -118,10 +118,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
 
-            hipStream_t    stream = 0; // default
-            size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
-            size_t         temp_storage_size;
-            input_type     h_value
+            hipStream_t stream = 0; // default
+            size_t      count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
+            size_t      temp_storage_size;
+            input_type  h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
                                                            ++seed_value);
@@ -202,7 +202,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, EqualSequence)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -213,10 +213,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, EqualSequence)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
 
-            hipStream_t    stream = 0; // default
-            size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
-            size_t         temp_storage_size;
-            input_type     h_value
+            hipStream_t stream = 0; // default
+            size_t      count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
+            size_t      temp_storage_size;
+            input_type  h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
                                                            ++seed_value);
@@ -290,7 +290,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -301,10 +301,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
 
-            hipStream_t    stream = 0; // default
-            size_t         count  = size;
-            size_t         temp_storage_size;
-            input_type     h_value
+            hipStream_t stream = 0; // default
+            size_t      count  = size;
+            size_t      temp_storage_size;
+            input_type  h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
                                                            ++seed_value);
@@ -378,7 +378,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -389,10 +389,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
 
-            hipStream_t    stream = 0; // default
-            size_t         count  = 0;
-            size_t         temp_storage_size;
-            input_type     h_value
+            hipStream_t stream = 0; // default
+            size_t      count  = 0;
+            size_t      temp_storage_size;
+            input_type  h_value
                 = test_utils::get_random_value<input_type>(0,
                                                            limit_type<input_type>::max(),
                                                            ++seed_value);
@@ -465,7 +465,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -552,7 +552,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -639,7 +639,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -751,7 +751,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -864,7 +864,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -876,8 +876,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
 
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -979,7 +977,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
@@ -991,8 +989,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
 
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -1096,7 +1092,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
+    constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
