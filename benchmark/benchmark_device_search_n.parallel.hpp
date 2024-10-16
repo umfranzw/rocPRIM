@@ -218,24 +218,22 @@ private:
                                           rocprim::equal_to<InputType>{},
                                           self.stream,
                                           false));
-
-            HIP_CHECK(hipMalloc(&self.d_temp_storage, self.temp_storage_size));
-
-            HIP_CHECK(::rocprim::search_n(self.d_temp_storage,
-                                          self.temp_storage_size,
-                                          self.d_input,
-                                          self.d_output,
-                                          self.size,
-                                          self.count,
-                                          self.d_value,
-                                          rocprim::equal_to<InputType>{},
-                                          self.stream,
-                                          false));
-
-            HIP_CHECK(hipFree(self.d_temp_storage));
             self.temp_storage_size = 0;
             self.d_temp_storage    = nullptr;
         };
+
+        // allocate memory
+        HIP_CHECK(::rocprim::search_n(self.d_temp_storage,
+                                      self.temp_storage_size,
+                                      self.d_input,
+                                      self.d_output,
+                                      self.size,
+                                      self.count,
+                                      self.d_value,
+                                      rocprim::equal_to<InputType>{},
+                                      self.stream,
+                                      false));
+        HIP_CHECK(hipMalloc(&self.d_temp_storage, self.temp_storage_size));
 
         // Warm-up
         for(size_t i = 0; i < self.warmup_size; i++)
@@ -265,6 +263,7 @@ private:
         }
 
         // Destroy HIP events
+        HIP_CHECK(hipFree(self.d_temp_storage));
 
         state.SetBytesProcessed(state.iterations() * self.batch_size * self.size
                                 * sizeof(*(self.d_input)));
@@ -434,10 +433,7 @@ struct device_search_n_benchmark_generator
     struct create_search_n_algorithm
     {};
     // TODO: add implementation
-    static void create(std::vector<std::unique_ptr<config_autotune_interface>>& storage)
-    {
-        (void)storage;
-    }
+    static void create(std::vector<std::unique_ptr<config_autotune_interface>>&) {}
 };
 
 #endif // ROCPRIM_BENCHMARK_DEVICE_SEARCH_N_PARALLEL_HPP_

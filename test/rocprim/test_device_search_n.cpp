@@ -107,7 +107,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -121,8 +120,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
 
             hipStream_t    stream = 0; // default
             size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
-            hipGraph_t     graph;
-            hipGraphExec_t graph_instance;
             size_t         temp_storage_size;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
@@ -190,10 +187,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -209,7 +202,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, EqualSequence)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -223,8 +215,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, EqualSequence)
 
             hipStream_t    stream = 0; // default
             size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
-            hipGraph_t     graph;
-            hipGraphExec_t graph_instance;
             size_t         temp_storage_size;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
@@ -285,10 +275,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, EqualSequence)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -304,7 +290,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -318,8 +303,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
 
             hipStream_t    stream = 0; // default
             size_t         count  = size;
-            hipGraph_t     graph;
-            hipGraphExec_t graph_instance;
             size_t         temp_storage_size;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
@@ -380,10 +363,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -399,7 +378,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -413,8 +391,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
 
             hipStream_t    stream = 0; // default
             size_t         count  = 0;
-            hipGraph_t     graph;
-            hipGraphExec_t graph_instance;
             size_t         temp_storage_size;
             input_type     h_value
                 = test_utils::get_random_value<input_type>(0,
@@ -474,10 +450,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -493,7 +465,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -507,8 +478,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
 
             hipStream_t             stream = 0; // default
             size_t                  count  = size / 2;
-            hipGraph_t              graph;
-            hipGraphExec_t          graph_instance;
             size_t                  temp_storage_size;
             input_type              h_value{1};
             std::vector<input_type> h_input(size);
@@ -568,10 +537,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -587,7 +552,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -601,8 +565,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
 
             hipStream_t             stream = 0; // default
             size_t                  count  = size / 2;
-            hipGraph_t              graph;
-            hipGraphExec_t          graph_instance;
             size_t                  temp_storage_size;
             input_type              h_value{1};
             std::vector<input_type> h_input(size);
@@ -662,10 +624,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -681,7 +639,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -693,9 +650,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -782,10 +736,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -801,7 +751,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -814,8 +763,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
 
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -902,10 +849,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -921,7 +864,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -1022,10 +964,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -1041,7 +979,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -1144,10 +1081,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
@@ -1163,7 +1096,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
     using op_type     = typename TestFixture::op_type;
     using config      = typename TestFixture::config;
 
-    constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     op_type        op{};
 
@@ -1176,8 +1108,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
 
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -1260,10 +1190,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
             {
                 HIP_CHECK(hipStreamDestroy(stream));
             }
-
-            (void)graph;
-            (void)graph_instance;
-            (void)use_indirect_iterator;
         }
     }
 }
