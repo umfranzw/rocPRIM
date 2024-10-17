@@ -341,6 +341,7 @@ inline void add_one_benchmark_search_n(std::vector<benchmark::internal::Benchmar
                                        const hipStream_t                             _stream,
                                        const size_t                                  _size_byte)
 {
+    // normal
     benchmark_search_n<T, size_t, benchmark_search_n_mode::NORMAL> start_from_0(_seed,
                                                                                 _stream,
                                                                                 _size_byte,
@@ -357,28 +358,13 @@ inline void add_one_benchmark_search_n(std::vector<benchmark::internal::Benchmar
                                                                                _size_byte,
                                                                                1, // count times
                                                                                6);
-    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> small_count1023(_seed,
-                                                                                  _stream,
-                                                                                  _size_byte,
-                                                                                  1, // count times
-                                                                                  1023);
     // mid count test
-    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> mid_count2047(_seed,
-                                                                                _stream,
-                                                                                _size_byte,
-                                                                                1, // count times
-                                                                                2047);
     benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> mid_count4095(_seed,
                                                                                 _stream,
                                                                                 _size_byte,
                                                                                 1, // count times
                                                                                 4095);
     // big input
-    benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> big_count1(_seed,
-                                                                             _stream,
-                                                                             _size_byte,
-                                                                             3, // count times
-                                                                             (size_t)-1);
     benchmark_search_n<T, size_t, benchmark_search_n_mode::NOISE> big_count6(_seed,
                                                                              _stream,
                                                                              _size_byte,
@@ -388,10 +374,7 @@ inline void add_one_benchmark_search_n(std::vector<benchmark::internal::Benchmar
     std::vector<benchmark::internal::Benchmark*> bs = {start_from_0.bench_register(),
                                                        start_from_mid.bench_register(),
                                                        small_count6.bench_register(),
-                                                       small_count1023.bench_register(),
-                                                       mid_count2047.bench_register(),
                                                        mid_count4095.bench_register(),
-                                                       big_count1.bench_register(),
                                                        big_count6.bench_register()};
 
     benchmarks.insert(benchmarks.end(), bs.begin(), bs.end());

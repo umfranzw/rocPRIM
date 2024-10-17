@@ -1209,7 +1209,7 @@ struct search_n_config : public detail::search_n_config_params
 #ifndef DOXYGEN_DOCUMENTATION_BUILD
     constexpr search_n_config()
         : detail::search_n_config_params{
-              6, {BlockSize, ItemsPerThread, 0}
+            6, {BlockSize, ItemsPerThread, 0}
     }
     {}
 #endif

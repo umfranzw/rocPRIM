@@ -157,15 +157,40 @@ void search_n_heads_filter_kernel(const size_t size,
     {
         const auto cur_val = heads[i];
         if(cur_val == (size_t)-1)
-        {
+        { // this is not a valid head
             continue;
         }
         const size_t this_head = size - cur_val - 1;
-        if(i + 1 < heads_size)
-        {
+        if(i + 1 == heads_size)
+        { // head of last group
+            if(size - this_head < count)
+            { // cannot make it to count
+                continue;
+            }
+        }
+        else if(i + 2 == heads_size)
+        { // the head before last head (last group might be incomplete so, the head before last head can be invalid)
+            const auto next_val = heads[i + 1];
+            if((next_val == (size_t)-1))
+            { // if last head was valid, the limit of this head is the last head
+                if(size - this_head < count)
+                { // cannot make it to count
+                    continue;
+                }
+            }
+            else
+            { // if last head was invalid, the limit of this head is the size
+                if((size - next_val - 1) - this_head - 1 < count)
+                { // cannot make it to count
+                    continue;
+                }
+            }
+        }
+        else
+        { // other heads
             const auto next_val = heads[i + 1];
             if((next_val != (size_t)-1) && ((size - next_val - 1) - this_head - 1 < count))
-            {
+            { // if next head is invalid, the limit of this head should the next head, else it is possible to make the sequence to count
                 continue;
             }
         }
@@ -328,9 +353,8 @@ hipError_t search_n_impl(void*          temporary_storage,
         // initialization
         HIP_CHECK(hipMemsetAsync(tmp_output, 0, sizeof(size_t), stream));
         HIP_CHECK(hipMemsetAsync(unfiltered_heads, -1, sizeof(size_t) * num_groups * 2, stream));
-        // find the thread heads of each group
 
-        // find head
+        // find the thread heads of each group
         search_n_find_heads_kernel<config>
             <<<num_blocks, block_size, 0, stream>>>(input,
                                                     size,
@@ -340,7 +364,7 @@ hipError_t search_n_impl(void*          temporary_storage,
                                                     count /*group_size*/);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_find_heads_kernel", size, start);
 
-        // do filter for heads
+        // filter heads
         const size_t num_blocks_for_heads = ceiling_div(num_groups, items_per_block);
         search_n_heads_filter_kernel<config>
             <<<num_blocks_for_heads, block_size, 0, stream>>>(size,
@@ -362,6 +386,7 @@ hipError_t search_n_impl(void*          temporary_storage,
                                  stream));
         HIP_CHECK(hipStreamSynchronize(stream));
 
+        // initialize tmp_output
         search_n_init_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_init_kernel", 1, start);
 
