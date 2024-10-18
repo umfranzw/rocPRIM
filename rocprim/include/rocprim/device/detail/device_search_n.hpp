@@ -384,7 +384,6 @@ hipError_t search_n_impl(void*          temporary_storage,
                                  sizeof(size_t),
                                  hipMemcpyDeviceToHost,
                                  stream));
-        HIP_CHECK(hipStreamSynchronize(stream));
 
         // initialize tmp_output
         search_n_init_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
@@ -393,11 +392,6 @@ hipError_t search_n_impl(void*          temporary_storage,
         // check if there are no more valid heads, otherwise will return directly
         if(h_filtered_heads_size != 0)
         {
-            size_t* check_val = nullptr;
-            HIP_CHECK(hipMallocAsync(&check_val, sizeof(size_t), stream));
-            HIP_CHECK(hipMemsetAsync(check_val, -1, sizeof(size_t), stream));
-            HIP_CHECK(hipStreamSynchronize(stream));
-
             // check if any valid heads make a valid sequence
             const size_t num_blocks_for_reduce
                 = ceiling_div(h_filtered_heads_size * count /*group_size*/, items_per_block);

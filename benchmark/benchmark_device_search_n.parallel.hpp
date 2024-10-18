@@ -179,14 +179,16 @@ private:
                 }
         }
 
-        HIP_CHECK(hipMalloc(&d_value, sizeof(InputType)));
-        HIP_CHECK(hipMalloc(&d_input, sizeof(InputType) * input.size()));
-        HIP_CHECK(hipMalloc(&d_output, sizeof(OutputType)));
-        HIP_CHECK(hipMemcpy(d_value, &value, sizeof(InputType), hipMemcpyHostToDevice));
-        HIP_CHECK(hipMemcpy(d_input,
-                            input.data(),
-                            sizeof(InputType) * input.size(),
-                            hipMemcpyHostToDevice));
+        HIP_CHECK(hipMallocAsync(&d_value, sizeof(InputType), stream));
+        HIP_CHECK(hipMallocAsync(&d_input, sizeof(InputType) * input.size(), stream));
+        HIP_CHECK(hipMallocAsync(&d_output, sizeof(OutputType), stream));
+        HIP_CHECK(
+            hipMemcpyAsync(d_value, &value, sizeof(InputType), hipMemcpyHostToDevice, stream));
+        HIP_CHECK(hipMemcpyAsync(d_input,
+                                 input.data(),
+                                 sizeof(InputType) * input.size(),
+                                 hipMemcpyHostToDevice,
+                                 stream));
 
         HIP_CHECK(hipEventCreate(&start));
         HIP_CHECK(hipEventCreate(&stop));
@@ -202,46 +204,36 @@ private:
         HIP_CHECK(hipFree(d_output));
     }
 
+    void launch_search_n()
+    {
+        HIP_CHECK(::rocprim::search_n(d_temp_storage,
+                                      temp_storage_size,
+                                      d_input,
+                                      d_output,
+                                      size,
+                                      count,
+                                      d_value,
+                                      rocprim::equal_to<InputType>{},
+                                      stream,
+                                      false));
+    }
+
     static void run(benchmark::State& state, benchmark_search_n const& _self)
     {
         auto& self = const_cast<benchmark_search_n&>(_self);
         self.create();
-        auto launch_search_n = [&]()
-        {
-            HIP_CHECK(::rocprim::search_n(self.d_temp_storage,
-                                          self.temp_storage_size,
-                                          self.d_input,
-                                          self.d_output,
-                                          self.size,
-                                          self.count,
-                                          self.d_value,
-                                          rocprim::equal_to<InputType>{},
-                                          self.stream,
-                                          false));
-            self.temp_storage_size = 0;
-            self.d_temp_storage    = nullptr;
-        };
 
         // allocate memory
-        HIP_CHECK(::rocprim::search_n(self.d_temp_storage,
-                                      self.temp_storage_size,
-                                      self.d_input,
-                                      self.d_output,
-                                      self.size,
-                                      self.count,
-                                      self.d_value,
-                                      rocprim::equal_to<InputType>{},
-                                      self.stream,
-                                      false));
-        HIP_CHECK(hipMalloc(&self.d_temp_storage, self.temp_storage_size));
+        self.launch_search_n();
+        HIP_CHECK(hipMallocAsync(&self.d_temp_storage, self.temp_storage_size, self.stream));
 
         // Warm-up
         for(size_t i = 0; i < self.warmup_size; i++)
         {
-            launch_search_n();
+            self.launch_search_n();
         }
+        HIP_CHECK(hipStreamSynchronize(self.stream));
 
-        HIP_CHECK(hipDeviceSynchronize());
         // Run
         for(auto _ : state)
         {
@@ -250,7 +242,7 @@ private:
 
             for(size_t i = 0; i < self.batch_size; i++)
             {
-                launch_search_n();
+                self.launch_search_n();
             }
 
             // Record stop event and wait until it completes
@@ -262,39 +254,35 @@ private:
             state.SetIterationTime(elapsed_mseconds / 1000);
         }
 
-        // Destroy HIP events
+        // Clean-up
         HIP_CHECK(hipFree(self.d_temp_storage));
-
+        self.d_temp_storage    = nullptr;
+        self.temp_storage_size = 0;
         state.SetBytesProcessed(state.iterations() * self.batch_size * self.size
                                 * sizeof(*(self.d_input)));
         state.SetItemsProcessed(state.iterations() * self.batch_size * self.size);
-
         self.release();
     }
 
 public:
-    benchmark_search_n(const managed_seed _seed,
-                       const hipStream_t  _stream,
-                       const size_t       _2,
-                       const size_t       _3, // for NOISE benchmarks, this is the multiple of count
-                       const size_t       _4) noexcept
+    benchmark_search_n(
+        const managed_seed _seed,
+        const hipStream_t  _stream,
+        const size_t       _size_byte,
+        const size_t       _count_byte, // for NOISE benchmarks, this is the multiple of count
+        const size_t       _start_pos_byte) noexcept
         : seed(_seed)
         , stream(_stream)
-        , size_byte(0)
-        , count_byte(0)
-        , start_pos_byte(0)
+        , size_byte(_size_byte)
+        , count_byte(_count_byte)
+        , start_pos_byte(_start_pos_byte)
         , value{1}
         , input()
     {
-
         switch(mode)
         {
             case benchmark_search_n_mode::NORMAL:
                 {
-                    size_byte      = _2;
-                    count_byte     = _3;
-                    start_pos_byte = _4;
-
                     size      = size_byte / sizeof(InputType);
                     count     = count_byte / sizeof(InputType);
                     start_pos = start_pos_byte / sizeof(InputType);
@@ -302,15 +290,12 @@ public:
                 }
             case benchmark_search_n_mode::NOISE:
                 {
-                    size_byte  = _2;
-                    count_byte = _3;
-
                     size  = size_byte / sizeof(InputType);
                     count = count_byte;
                     noise_sequence
-                        = _4 == (size_t)-1
+                        = _start_pos_byte == (size_t)-1
                               ? search_n_get_item_per_block<rocprim::default_config, InputType>()
-                              : _4;
+                              : _start_pos_byte;
 
                     if(size > noise_sequence * count)
                     {
