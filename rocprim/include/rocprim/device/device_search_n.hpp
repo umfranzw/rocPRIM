@@ -63,7 +63,7 @@ BEGIN_ROCPRIM_NAMESPACE
 /// \param [in] input iterator to the input range.
 /// \param [out] output iterator to the output range. The output is one element.
 /// \param [in] size number of elements in the input range.
-/// \param [in] count number of elements in the sequence.
+/// \param [in] count number of elements in the sequence. Must be less or equal than \p size, otherwise `hipErrorInvalidValue` will be returned.
 /// \param [in] value value of the elements to search for.
 /// \param [in] binary_predicate binary operation function object that will be used for comparison.
 ///   The signature of the function should be equivalent to the following:

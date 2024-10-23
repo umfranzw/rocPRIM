@@ -151,9 +151,9 @@ void search_n_heads_filter_kernel(const size_t size,
 
     const size_t this_thread_start_idx
         = (block_id<0>() * items_per_block) + (block_thread_id<0>() * items_per_thread);
-    for(size_t i = this_thread_start_idx;
-        i < items_per_thread + this_thread_start_idx && i < heads_size;
-        ++i)
+    const size_t this_thread_end_idx
+        = std::min(items_per_thread + this_thread_start_idx, heads_size);
+    for(size_t i = this_thread_start_idx; i < this_thread_end_idx; ++i)
     {
         const auto cur_val = heads[i];
         if(cur_val == (size_t)-1)
@@ -171,25 +171,17 @@ void search_n_heads_filter_kernel(const size_t size,
         else if(i + 2 == heads_size)
         { // the head before last head (last group might be incomplete so, the head before last head can be invalid)
             const auto next_val = heads[i + 1];
-            if((next_val == (size_t)-1))
-            { // if last head was invalid, the limit of this head is the size
-                if(size - this_head < count)
-                { // cannot make it to count
-                    continue;
-                }
-            }
-            else
-            { // if last head was valid, the limit of this head is the last head
-                if((size - next_val - 1) - this_head - 1 < count)
-                { // cannot make it to count
-                    continue;
-                }
+            if(((next_val != (size_t)-1) ? ((size - next_val - 1) - this_head - 1)
+                                         : (size - this_head))
+               < count)
+            { // cannot make it to count
+                continue;
             }
         }
         else
         { // other heads
             const auto next_val = heads[i + 1];
-            if((next_val != (size_t)-1) && ((size - next_val - 1) - this_head - 1 < count))
+            if((next_val != (size_t)-1) && (((size - next_val - 1) - this_head - 1) < count))
             { // if next head is invalid, the limit of this head should the next head, else it is possible to make the sequence to count
                 continue;
             }
