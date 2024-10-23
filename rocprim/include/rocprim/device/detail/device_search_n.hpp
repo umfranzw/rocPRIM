@@ -49,7 +49,7 @@ void search_n_init_kernel(size_t* __restrict__ output, const size_t target)
 }
 
 /// \brief Supports all forms of search_n operations,
-/// but the efficiency is insufficient when `items_per_block is` too large.
+/// but the efficiency is insufficient when `items_per_block` is too large.
 template<class Config, class InputIterator, class BinaryPredicate>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
 void search_n_normal_kernel(InputIterator input,
