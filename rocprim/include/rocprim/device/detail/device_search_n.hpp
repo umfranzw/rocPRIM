@@ -24,6 +24,7 @@
 #include "../../common.hpp"
 #include "../../config.hpp"
 #include "../config_types.hpp"
+#include "../device_reduce.hpp"
 #include "../device_search_n_config.hpp"
 #include "../device_transform.hpp"
 
@@ -234,27 +235,6 @@ void search_n_reduce_kernel(InputIterator                                       
     }
 }
 
-template<class Config>
-ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_min_kernel(const size_t* __restrict__ heads,
-                         const size_t heads_size,
-                         size_t* __restrict__ output)
-{
-    constexpr auto params           = device_params<Config>();
-    constexpr auto block_size       = params.kernel_config.block_size;
-    constexpr auto items_per_thread = params.kernel_config.items_per_thread;
-    constexpr auto items_per_block  = block_size * items_per_thread;
-
-    const size_t this_thread_start_idx
-        = (block_id<0>() * items_per_block) + (block_thread_id<0>() * items_per_thread);
-    for(size_t i = this_thread_start_idx;
-        i < items_per_thread + this_thread_start_idx && i < heads_size;
-        ++i)
-    {
-        atomic_min(output, heads[i]);
-    }
-}
-
 template<class Config, class InputIterator, class OutputIterator, class BinaryPredicate>
 ROCPRIM_INLINE
 hipError_t search_n_impl(void*          temporary_storage,
@@ -331,15 +311,28 @@ hipError_t search_n_impl(void*          temporary_storage,
     { // the count is greater than params.threshold
         // group_size is equal to `count`
         const size_t num_groups = ceiling_div(size, count /*group_size*/);
-
+        size_t       reduce_storage_size;
+        RETURN_ON_ERROR(reduce(nullptr,
+                               reduce_storage_size,
+                               reinterpret_cast<size_t*>(0),
+                               output,
+                               size,
+                               num_groups,
+                               minimum<size_t>{},
+                               stream,
+                               debug_synchronous));
+        size_t front_size
+            = std::max<size_t>(sizeof(size_t) + (sizeof(size_t) * num_groups), reduce_storage_size);
         if(tmp_output == nullptr)
         {
-            storage_size = sizeof(size_t) + (sizeof(size_t) * num_groups * 2);
+            storage_size = front_size + (sizeof(size_t) * num_groups);
             return hipSuccess;
         }
 
-        size_t* unfiltered_heads = tmp_output + 1;
-        size_t* filtered_heads   = unfiltered_heads + num_groups;
+        auto unfiltered_heads = reinterpret_cast<size_t*>(reinterpret_cast<char*>(temporary_storage)
+                                                          + sizeof(size_t));
+        auto filtered_heads
+            = reinterpret_cast<size_t*>(reinterpret_cast<char*>(temporary_storage) + front_size);
 
         search_n_start_timer(start, debug_synchronous);
         // initialization
@@ -384,6 +377,23 @@ hipError_t search_n_impl(void*          temporary_storage,
         // check if there are no more valid heads, otherwise will return directly
         if(h_filtered_heads_size != 0)
         {
+            // check if the `storage_size` needed by rocprim::reduce is still the same when changed the input_size to h_filtered_heads_size
+            // if rocprim::reduce the `storage_size` is always smaller while input_size is smaller, then this check can be removed
+            size_t new_reduce_storage_size;
+            RETURN_ON_ERROR(reduce(nullptr,
+                                   new_reduce_storage_size,
+                                   reinterpret_cast<size_t*>(0),
+                                   output,
+                                   size,
+                                   h_filtered_heads_size, // changed this
+                                   minimum<size_t>{},
+                                   stream,
+                                   debug_synchronous));
+            if(new_reduce_storage_size > reduce_storage_size)
+            { // the rocprim::reduce returns greater `storage_size` when passing `h_filtered_heads_size` than `num_group` (`h_filtered_heads_size` <= `num_group`)
+                return hipErrorInvalidValue;
+            }
+
             // check if any valid heads make a valid sequence
             const size_t num_blocks_for_reduce
                 = ceiling_div(h_filtered_heads_size * count /*group_size*/, items_per_block);
@@ -399,26 +409,22 @@ hipError_t search_n_impl(void*          temporary_storage,
             ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_reduce_kernel",
                                                         h_filtered_heads_size,
                                                         start);
-
             // calculate the minimum valid head
-            const size_t num_blocks_for_min = ceiling_div(h_filtered_heads_size, items_per_block);
-            // max access time for each item is 1
-            search_n_min_kernel<config>
-                <<<num_blocks_for_min, block_size, 0, stream>>>(filtered_heads,
-                                                                h_filtered_heads_size,
-                                                                tmp_output);
-            ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_min_head",
-                                                        h_filtered_heads_size,
-                                                        start);
+            RETURN_ON_ERROR(reduce(temporary_storage,
+                                   new_reduce_storage_size,
+                                   filtered_heads,
+                                   output,
+                                   size, // original value
+                                   h_filtered_heads_size, // changed this
+                                   minimum<size_t>{},
+                                   stream,
+                                   debug_synchronous));
+            return hipSuccess; // no needs to call transform, return directly
         }
     }
 
-    RETURN_ON_ERROR(transform(tmp_output,
-                              output,
-                              1,
-                              rocprim::identity<output_type>(),
-                              stream,
-                              debug_synchronous));
+    RETURN_ON_ERROR(
+        transform(tmp_output, output, 1, identity<output_type>(), stream, debug_synchronous));
     return hipSuccess;
 }
 
