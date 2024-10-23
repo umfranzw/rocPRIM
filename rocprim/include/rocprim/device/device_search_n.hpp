@@ -69,7 +69,7 @@ BEGIN_ROCPRIM_NAMESPACE
 ///   The signature of the function should be equivalent to the following:
 ///   <tt>bool f(const T &a, const T &b);</tt>. The signature does not need to have
 ///   <tt>const &</tt>, but function object must not modify the objects passed to it.
-///   The comparator must meet the C++ named requirement Compare.
+///   The comparator must meet the C++ requirements of BinaryPredicate.
 ///   The default value is `BinaryPredicate()`.
 /// \param [in] stream [optional] HIP stream object. Default is `0` (default stream).
 /// \param [in] debug_synchronous [optional] If true, synchronization after every kernel
