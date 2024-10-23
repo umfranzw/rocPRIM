@@ -172,14 +172,14 @@ void search_n_heads_filter_kernel(const size_t size,
         { // the head before last head (last group might be incomplete so, the head before last head can be invalid)
             const auto next_val = heads[i + 1];
             if((next_val == (size_t)-1))
-            { // if last head was valid, the limit of this head is the last head
+            { // if last head was invalid, the limit of this head is the size
                 if(size - this_head < count)
                 { // cannot make it to count
                     continue;
                 }
             }
             else
-            { // if last head was invalid, the limit of this head is the size
+            { // if last head was valid, the limit of this head is the last head
                 if((size - next_val - 1) - this_head - 1 < count)
                 { // cannot make it to count
                     continue;
