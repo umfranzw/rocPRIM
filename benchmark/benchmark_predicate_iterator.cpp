@@ -75,15 +75,24 @@ struct increment
 };
 
 template<class T, class Predicate, class Transform>
+struct transform_op
+{
+    __device__
+    auto operator()(T v) const
+    {
+        return Predicate{}(v) ? Transform{}(v) : v;
+    }
+};
+
+template<class T, class Predicate, class Transform>
 struct transform_it
 {
     using value_type = T;
 
     void operator()(T* d_input, T* d_output, const size_t size, const hipStream_t stream)
     {
-        auto t_it = rocprim::make_transform_iterator(
-            d_input,
-            [&] __device__(T v) { return Predicate{}(v) ? Transform{}(v) : v; });
+        auto t_it
+            = rocprim::make_transform_iterator(d_input, transform_op<T, Predicate, Transform>{});
         HIP_CHECK(rocprim::transform(t_it, d_output, size, identity<T>{}, stream));
     }
 };

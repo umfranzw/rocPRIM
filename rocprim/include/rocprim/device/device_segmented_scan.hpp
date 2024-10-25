@@ -47,6 +47,31 @@ BEGIN_ROCPRIM_NAMESPACE
 namespace detail
 {
 
+template<class InputIterator, class HeadFlagIterator, class ResultType, class FlagType>
+struct transform_op_t
+{
+    InputIterator    input;
+    HeadFlagIterator head_flags;
+    ResultType       initial_value_converted;
+    size_t           size;
+
+    ROCPRIM_DEVICE
+    auto             operator()(const size_t i) const
+    {
+        FlagType flag(false);
+        if(i + 1 < size)
+        {
+            flag = head_flags[i + 1];
+        }
+        ResultType value = initial_value_converted;
+        if(!flag)
+        {
+            value = input[i];
+        }
+        return rocprim::make_tuple(value, flag);
+    }
+};
+
 template<
     bool Exclusive,
     class Config,
@@ -587,39 +612,26 @@ hipError_t segmented_exclusive_scan(void * temporary_storage,
         detail::headflag_scan_op_wrapper<
             result_type, flag_type, BinaryFunction
         >;
+    using transform_op
+        = detail::transform_op_t<InputIterator, HeadFlagIterator, result_type, flag_type>;
 
     const result_type initial_value_converted = static_cast<result_type>(initial_value);
 
     // Flag the last item of each segment as the next segment's head, use initial_value as its value,
     // then run exclusive scan
     return exclusive_scan<Config>(
-        temporary_storage, storage_size,
+        temporary_storage,
+        storage_size,
         rocprim::make_transform_iterator(
             rocprim::make_counting_iterator<size_t>(0),
-            [input, head_flags, initial_value_converted, size]
-            ROCPRIM_DEVICE
-            (const size_t i)
-            {
-                flag_type flag(false);
-                if(i + 1 < size)
-                {
-                    flag = head_flags[i + 1];
-                }
-                result_type value = initial_value_converted;
-                if(!flag)
-                {
-                    value = input[i];
-                }
-                return rocprim::make_tuple(value, flag);
-            }
-        ),
+            transform_op{input, head_flags, initial_value_converted, size}),
         rocprim::make_zip_iterator(rocprim::make_tuple(output, rocprim::make_discard_iterator())),
-        rocprim::make_tuple(initial_value_converted, flag_type(true)), // init value is a head of the first segment
+        rocprim::make_tuple(initial_value_converted,
+                            flag_type(true)), // init value is a head of the first segment
         size,
         headflag_scan_op_wrapper_type(scan_op),
         stream,
-        debug_synchronous
-    );
+        debug_synchronous);
 }
 
 /// @}
