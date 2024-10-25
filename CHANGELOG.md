@@ -30,7 +30,6 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 
 * Removed HIP-CPU support. HIP-CPU support was experimental and broken.
 * Changed the C++ version from 14 to 17. C++14 will be deprecated in the next major release.
-* Using the initialisation constructor of `rocprim::reverse_iterator` will throw a deprecation warning. It will be marked as explicit in the next major release.
 
 ### Resolved issues
 
@@ -40,6 +39,7 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 * Fixed compilation issue when `rocprim::radix_key_codec<...>` is specialized with a 128-bit integer.
 
 ### Upcoming changes
+* Using the initialisation constructor of `rocprim::reverse_iterator` will throw a deprecation warning. It will be marked as explicit in the next major release.
 
 ## rocPRIM 3.3.0 for ROCm 6.3.0
 
