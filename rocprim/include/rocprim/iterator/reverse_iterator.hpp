@@ -63,13 +63,14 @@ public:
     using iterator_category = std::random_access_iterator_tag;
 
     /// \brief Constructs a new default reverse_iterator.
-    ROCPRIM_HOST_DEVICE constexpr reverse_iterator()
-        : source_iterator_(nullptr)
+    ROCPRIM_HOST_DEVICE constexpr reverse_iterator() : source_iterator_(nullptr)
     {}
 
     /// \brief Constructs a new reverse_iterator using the supplied source.
-    [[deprecated("The initialisation constructor of 'rocprim::reverse_iterator<Iter>' will be marked explicit in ROCm 7.0. Use 'rocprim::make_reverse_iterator' instead.")]]
-    ROCPRIM_HOST_DEVICE constexpr /*explicit*/ reverse_iterator(SourceIterator source_iterator)
+    [[deprecated("The initialisation constructor of 'rocprim::reverse_iterator<Iter>' will be "
+                 "marked explicit in ROCm 7.0. Use 'rocprim::make_reverse_iterator' "
+                 "instead.")]] ROCPRIM_HOST_DEVICE constexpr /*explicit*/ reverse_iterator(
+        SourceIterator source_iterator)
         : source_iterator_(source_iterator)
     {}
 
@@ -81,7 +82,8 @@ public:
     {}
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-    ROCPRIM_HOST_DEVICE constexpr SourceIterator base() const
+    ROCPRIM_HOST_DEVICE
+    constexpr SourceIterator base() const
     {
         return source_iterator_;
     }
@@ -240,10 +242,10 @@ template<class SourceIterator>
 ROCPRIM_HOST_DEVICE
 constexpr reverse_iterator<SourceIterator> make_reverse_iterator(SourceIterator source_iterator)
 {
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     return reverse_iterator<SourceIterator>(source_iterator);
-    #pragma clang diagnostic pop
+#pragma clang diagnostic pop
 }
 
 END_ROCPRIM_NAMESPACE
