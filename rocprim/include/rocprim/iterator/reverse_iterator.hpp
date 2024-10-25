@@ -63,21 +63,18 @@ public:
     using iterator_category = std::random_access_iterator_tag;
 
     /// \brief Constructs a new default reverse_iterator.
-    ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator()
-        : source_iterator_(nullptr)
+    ROCPRIM_HOST_DEVICE constexpr reverse_iterator() : source_iterator_(nullptr)
     {}
 
     /// \brief Constructs a new reverse_iterator using the supplied source.
-    ROCPRIM_HOST_DEVICE
-    constexpr explicit reverse_iterator(SourceIterator source_iterator)
+    ROCPRIM_HOST_DEVICE constexpr explicit reverse_iterator(SourceIterator source_iterator)
         : source_iterator_(source_iterator)
     {}
 
     /// \brief Constructs a new reverse_iterator using that of the supplied source.
     template<class OtherSourceIterator>
-    ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator(const reverse_iterator<OtherSourceIterator>& source_reverse_iterator)
+    ROCPRIM_HOST_DEVICE constexpr reverse_iterator(
+        const reverse_iterator<OtherSourceIterator>& source_reverse_iterator)
         : source_iterator_(source_reverse_iterator.base())
     {}
 
@@ -89,14 +86,16 @@ public:
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator& operator++()
+    constexpr reverse_iterator&
+        operator++()
     {
         --source_iterator_;
         return *this;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator operator++(int)
+    constexpr reverse_iterator
+        operator++(int)
     {
         reverse_iterator old = *this;
         --source_iterator_;
@@ -104,14 +103,16 @@ public:
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator& operator--()
+    constexpr reverse_iterator&
+        operator--()
     {
         ++source_iterator_;
         return *this;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator operator--(int)
+    constexpr reverse_iterator
+        operator--(int)
     {
         reverse_iterator old = *this;
         ++source_iterator_;
@@ -119,82 +120,95 @@ public:
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reference operator*() const
+    constexpr reference
+        operator*() const
     {
         return *(source_iterator_ - static_cast<difference_type>(1));
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reference operator[](difference_type distance) const
+    constexpr reference
+        operator[](difference_type distance) const
     {
         reverse_iterator i = (*this) + distance;
         return *i;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator operator+(difference_type distance) const
+    constexpr reverse_iterator
+        operator+(difference_type distance) const
     {
         return reverse_iterator(source_iterator_ - distance);
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator& operator+=(difference_type distance)
+    constexpr reverse_iterator&
+        operator+=(difference_type distance)
     {
         source_iterator_ -= distance;
         return *this;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator operator-(difference_type distance) const
+    constexpr reverse_iterator
+        operator-(difference_type distance) const
     {
         return reverse_iterator(source_iterator_ + distance);
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr reverse_iterator& operator-=(difference_type distance)
+    constexpr reverse_iterator&
+        operator-=(difference_type distance)
     {
         source_iterator_ += distance;
         return *this;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr difference_type operator-(reverse_iterator other) const
+    constexpr difference_type
+        operator-(reverse_iterator other) const
     {
         return other.source_iterator_ - source_iterator_;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr bool operator==(reverse_iterator other) const
+    constexpr bool
+        operator==(reverse_iterator other) const
     {
         return source_iterator_ == other.source_iterator_;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr bool operator!=(reverse_iterator other) const
+    constexpr bool
+        operator!=(reverse_iterator other) const
     {
         return source_iterator_ != other.source_iterator_;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr bool operator<(reverse_iterator other) const
+    constexpr bool
+        operator<(reverse_iterator other) const
     {
         return other.source_iterator_ < source_iterator_;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr bool operator<=(reverse_iterator other) const
+    constexpr bool
+        operator<=(reverse_iterator other) const
     {
         return other.source_iterator_ <= source_iterator_;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr bool operator>(reverse_iterator other) const
+    constexpr bool
+        operator>(reverse_iterator other) const
     {
         return other.source_iterator_ > source_iterator_;
     }
 
     ROCPRIM_HOST_DEVICE
-    constexpr bool operator>=(reverse_iterator other) const
+    constexpr bool
+        operator>=(reverse_iterator other) const
     {
         return other.source_iterator_ >= source_iterator_;
     }
