@@ -604,6 +604,15 @@ class AlgorithmDeviceSelectPredicate(Algorithm):
     def __init__(self, fallback_entries):
         Algorithm.__init__(self, fallback_entries)
 
+class AlgorithmDeviceSelectPredicatedFlag(Algorithm):
+    algorithm_name = "device_select_predicated_flag"
+    cpp_configuration_template_name = "select_predicated_flag_config_template"
+    config_selection_params = [
+        SelectionType(name="data_type", is_optional=False, select_on_size_only=False),
+        SelectionType(name="flag_type", is_optional=False, select_on_size_only=True)]
+    def __init__(self, fallback_entries):
+        Algorithm.__init__(self, fallback_entries)
+
 class AlgorithmDeviceSelectUnique(Algorithm):
     algorithm_name = "device_select_unique"
     cpp_configuration_template_name = "select_unique_config_template"
@@ -691,6 +700,8 @@ def create_algorithm(algorithm_name: str, fallback_entries: List[FallbackCase]):
         return AlgorithmDeviceSelectFlag(fallback_entries)
     elif algorithm_name == 'device_select_predicate':
         return AlgorithmDeviceSelectPredicate(fallback_entries)
+    elif algorithm_name == 'device_select_predicated_flag':
+        return AlgorithmDeviceSelectPredicatedFlag(fallback_entries)
     elif algorithm_name == 'device_select_unique':
         return AlgorithmDeviceSelectUnique(fallback_entries)
     elif algorithm_name == 'device_select_unique_by_key':

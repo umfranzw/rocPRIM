@@ -47,6 +47,12 @@
 const size_t DEFAULT_BYTES = 1024 * 1024 * 32 * 4;
 #endif
 
+#define CREATE_SELECT_PREDICATED_FLAG_BENCHMARK(T, F, p)                                          \
+    {                                                                                             \
+        const device_select_predicated_flag_benchmark<T, F, rocprim::default_config, p> instance; \
+        REGISTER_BENCHMARK(benchmarks, bytes, seed, stream, instance);                            \
+    }
+
 #define CREATE_SELECT_FLAG_BENCHMARK(T, F, p)                                          \
     {                                                                                  \
         const device_select_flag_benchmark<T, rocprim::default_config, F, p> instance; \
@@ -70,6 +76,12 @@ const size_t DEFAULT_BYTES = 1024 * 1024 * 32 * 4;
         const device_select_unique_by_key_benchmark<K, V, rocprim::default_config, p> instance; \
         REGISTER_BENCHMARK(benchmarks, bytes, seed, stream, instance);                           \
     }
+
+#define BENCHMARK_SELECT_PREDICATED_FLAG_TYPE(type, value)                          \
+    CREATE_SELECT_PREDICATED_FLAG_BENCHMARK(type, value, select_probability::p005); \
+    CREATE_SELECT_PREDICATED_FLAG_BENCHMARK(type, value, select_probability::p025); \
+    CREATE_SELECT_PREDICATED_FLAG_BENCHMARK(type, value, select_probability::p050); \
+    CREATE_SELECT_PREDICATED_FLAG_BENCHMARK(type, value, select_probability::p075)
 
 #define BENCHMARK_SELECT_FLAG_TYPE(type, value)                          \
     CREATE_SELECT_FLAG_BENCHMARK(type, value, select_probability::p005); \
@@ -164,6 +176,14 @@ int main(int argc, char* argv[])
     BENCHMARK_SELECT_PREDICATE_TYPE(int8_t);
     BENCHMARK_SELECT_PREDICATE_TYPE(rocprim::half);
     BENCHMARK_SELECT_PREDICATE_TYPE(custom_int_double);
+
+    BENCHMARK_SELECT_PREDICATED_FLAG_TYPE(int, unsigned char);
+    BENCHMARK_SELECT_PREDICATED_FLAG_TYPE(float, unsigned char);
+    BENCHMARK_SELECT_PREDICATED_FLAG_TYPE(double, unsigned char);
+    BENCHMARK_SELECT_PREDICATED_FLAG_TYPE(uint8_t, uint8_t);
+    BENCHMARK_SELECT_PREDICATED_FLAG_TYPE(int8_t, int8_t);
+    BENCHMARK_SELECT_PREDICATED_FLAG_TYPE(rocprim::half, int8_t);
+    BENCHMARK_SELECT_PREDICATED_FLAG_TYPE(custom_double2, unsigned char);
 
     BENCHMARK_UNIQUE_TYPE(int);
     BENCHMARK_UNIQUE_TYPE(float);
