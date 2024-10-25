@@ -183,7 +183,7 @@ build:cmake-minimum-apt:
       -D BUILD_EXAMPLE=ON
       -D GPU_TARGETS=$GPU_TARGETS
       -D AMDGPU_TEST_TARGETS=$GPU_TARGETS
-      -D CMAKE_CXX_STANDARD=14
+      -D CMAKE_CXX_STANDARD="$BUILD_VERSION"
       -S $CI_PROJECT_DIR
       -B $BUILD_DIR
     - cmake --build $BUILD_DIR
@@ -212,6 +212,7 @@ build:cmake-latest:
     matrix:
       - BUILD_TYPE: Release
         BUILD_TARGET: [BENCHMARK, TEST]
+        BUILD_VERSION: [14, 17]
 
 build:cmake-minimum:
   needs: []
@@ -222,6 +223,7 @@ build:cmake-minimum:
     matrix:
       - BUILD_TYPE: [Debug, Release]
         BUILD_TARGET: [BENCHMARK, TEST]
+        BUILD_VERSION: 14
 
 build:package:
   stage: build
@@ -344,6 +346,7 @@ test:
         matrix:
           - BUILD_TYPE: Release
             BUILD_TARGET: TEST
+            BUILD_VERSION: 14
   script:
     - cd $BUILD_DIR
     - cmake
@@ -465,6 +468,7 @@ benchmark:
         matrix:
           - BUILD_TYPE: Release
             BUILD_TARGET: BENCHMARK
+            BUILD_VERSION: 14
   extends:
     - .cmake-minimum
     - .gpus:rocm
