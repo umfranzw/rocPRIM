@@ -148,7 +148,7 @@ public:
     constexpr reverse_iterator
         operator+(difference_type distance) const
     {
-        return make_reverse_iterator(source_iterator_ - distance);
+        return rocprim::make_reverse_iterator(source_iterator_ - distance);
     }
 
     ROCPRIM_HOST_DEVICE
@@ -163,7 +163,7 @@ public:
     constexpr reverse_iterator
         operator-(difference_type distance) const
     {
-        return make_reverse_iterator(source_iterator_ + distance);
+        return rocprim::make_reverse_iterator(source_iterator_ + distance);
     }
 
     ROCPRIM_HOST_DEVICE
