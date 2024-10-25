@@ -14,7 +14,7 @@ develop performant GPU-accelerated code on AMD ROCm platforms.
   * Including
     [HIP-clang](https://github.com/ROCm/HIP/blob/master/INSTALL.md#hip-clang)
     compiler
-* C++14
+* C++17
 * Python 3.6 or higher (HIP on Windows only, required only for install script)
 * Visual Studio 2019 with Clang support (HIP on Windows only)
 * Strawberry Perl (HIP on Windows only)

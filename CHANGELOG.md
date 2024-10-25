@@ -27,6 +27,9 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 * Changed the internal algorithm of block radix sort to use rank match to improve performance of various radix sort related algorithms.
 * Disabled padding in various cases where higher occupancy resulted in better performance despite more bank conflicts.
 
+* Removed HIP-CPU support. HIP-CPU support was experimental and broken.
+* Changed the C++ version from 14 to 17. C++14 will be deprecated in the next major release.
+
 ### Resolved issues
 
 * Fixed an issue where `rmake.py` would generate wrong CMAKE commands while using Linux environment
