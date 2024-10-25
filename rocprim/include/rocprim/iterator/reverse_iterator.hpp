@@ -62,11 +62,31 @@ public:
     /// The category of the iterator.
     using iterator_category = std::random_access_iterator_tag;
 
+    /// \brief Constructs a new default reverse_iterator.
+    ROCPRIM_HOST_DEVICE
+    reverse_iterator()
+        : source_iterator_(nullptr) {};
+
     /// \brief Constructs a new reverse_iterator using the supplied source.
     ROCPRIM_HOST_DEVICE
-    reverse_iterator(SourceIterator source_iterator) : source_iterator_(source_iterator) {}
+    explicit reverse_iterator(SourceIterator source_iterator)
+        : source_iterator_(source_iterator)
+    {}
 
-    #ifndef DOXYGEN_SHOULD_SKIP_THIS
+    /// \brief Constructs a new reverse_iterator using that of the supplied source.
+    template<class OtherSourceIterator>
+    ROCPRIM_HOST_DEVICE
+    reverse_iterator(const reverse_iterator<OtherSourceIterator>& source_reverse_iterator)
+        : source_iterator_(source_reverse_iterator.base())
+    {}
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+    ROCPRIM_HOST_DEVICE
+    SourceIterator base() const
+    {
+        return source_iterator_;
+    }
+
     ROCPRIM_HOST_DEVICE
     reverse_iterator& operator++()
     {
@@ -98,13 +118,13 @@ public:
     }
 
     ROCPRIM_HOST_DEVICE
-    reference operator*()
+    reference operator*() const
     {
         return *(source_iterator_ - static_cast<difference_type>(1));
     }
 
     ROCPRIM_HOST_DEVICE
-    reference operator[](difference_type distance)
+    reference operator[](difference_type distance) const
     {
         reverse_iterator i = (*this) + distance;
         return *i;
@@ -177,7 +197,7 @@ public:
     {
         return other.source_iterator_ >= source_iterator_;
     }
-    #endif // DOXYGEN_SHOULD_SKIP_THIS
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 private:
     SourceIterator source_iterator_;
@@ -185,8 +205,9 @@ private:
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 template<class SourceIterator>
-ROCPRIM_HOST_DEVICE reverse_iterator<SourceIterator>
-                    operator+(typename reverse_iterator<SourceIterator>::difference_type distance,
+ROCPRIM_HOST_DEVICE
+reverse_iterator<SourceIterator>
+    operator+(typename reverse_iterator<SourceIterator>::difference_type distance,
               const reverse_iterator<SourceIterator>&                    iterator)
 {
     return iterator + distance;
@@ -200,8 +221,8 @@ ROCPRIM_HOST_DEVICE reverse_iterator<SourceIterator>
 /// \param source_iterator - the iterator to wrap in the created \p reverse_iterator.
 /// \return A \p reverse_iterator that wraps \p source_iterator.
 template<class SourceIterator>
-ROCPRIM_HOST_DEVICE reverse_iterator<SourceIterator>
-                    make_reverse_iterator(SourceIterator source_iterator)
+ROCPRIM_HOST_DEVICE
+reverse_iterator<SourceIterator> make_reverse_iterator(SourceIterator source_iterator)
 {
     return reverse_iterator<SourceIterator>(source_iterator);
 }
