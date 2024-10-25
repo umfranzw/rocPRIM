@@ -43,6 +43,13 @@ BEGIN_ROCPRIM_NAMESPACE
 ///
 /// \tparam SourceIterator - type of the wrapped iterator.
 template<class SourceIterator>
+class reverse_iterator;
+
+template<class SourceIterator>
+ROCPRIM_HOST_DEVICE
+constexpr reverse_iterator<SourceIterator> make_reverse_iterator(SourceIterator source_iterator);
+
+template<class SourceIterator>
 class reverse_iterator
 {
 public:
@@ -141,7 +148,7 @@ public:
     constexpr reverse_iterator
         operator+(difference_type distance) const
     {
-        return reverse_iterator(source_iterator_ - distance);
+        return make_reverse_iterator(source_iterator_ - distance);
     }
 
     ROCPRIM_HOST_DEVICE
@@ -156,7 +163,7 @@ public:
     constexpr reverse_iterator
         operator-(difference_type distance) const
     {
-        return reverse_iterator(source_iterator_ + distance);
+        return make_reverse_iterator(source_iterator_ + distance);
     }
 
     ROCPRIM_HOST_DEVICE

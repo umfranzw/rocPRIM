@@ -19,6 +19,7 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 * Added rocprim::numeric_limits which is an extension of `std::numeric_limits`, which includes support for 128-bit integers.
 * Added rocprim::int128_t and rocprim::uint128_t which are the __int128_t and __uint128_t types.
 * Added the parallel `search` and `find_end` device functions similar to `std::search` and `std::find_end`, these functions search for the first and last occurrence of the sequence respectively.
+* Added new constructors and a `base` function, and added `constexpr` specifier to all functions in `rocprim::reverse_iterator` to improve parity with the C++17 `std::reverse_iterator`.
 
 ### Changed
 
@@ -29,6 +30,7 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 
 * Removed HIP-CPU support. HIP-CPU support was experimental and broken.
 * Changed the C++ version from 14 to 17. C++14 will be deprecated in the next major release.
+* Using the initialisation constructor of `rocprim::reverse_iterator` will throw a deprecation warning. It will be marked as explicit in the next major release.
 
 ### Resolved issues
 
