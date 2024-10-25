@@ -64,14 +64,12 @@ public:
 
     /// \brief Constructs a new default reverse_iterator.
     ROCPRIM_PRAGMA_MESSAGE("Deprecated until ROCm 7.0")
-    ROCPRIM_HOST_DEVICE constexpr reverse_iterator()
-        : source_iterator_(nullptr)
+    ROCPRIM_HOST_DEVICE constexpr reverse_iterator() : source_iterator_(nullptr)
     {}
 
     /// \brief Constructs a new reverse_iterator using the supplied source.
     ROCPRIM_PRAGMA_MESSAGE("Deprecated until ROCm 7.0")
-    ROCPRIM_HOST_DEVICE constexpr explicit reverse_iterator(
-        SourceIterator source_iterator)
+    ROCPRIM_HOST_DEVICE constexpr explicit reverse_iterator(SourceIterator source_iterator)
         : source_iterator_(source_iterator)
     {}
 
