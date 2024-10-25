@@ -149,6 +149,21 @@ struct wrapped_partition_config<default_config,
 
 template<typename KeyType>
 struct wrapped_partition_config<default_config,
+                                partition_subalgo::select_predicated_flag,
+                                KeyType,
+                                empty_type>
+{
+    template<target_arch Arch>
+    struct architecture_config
+    {
+        static constexpr partition_config_params params =
+            typename default_partition_config_base<KeyType, false>::type{};
+        // = default_select_predicate_config<static_cast<unsigned int>(Arch), KeyType>{}; TODO: change when tuned
+    };
+};
+
+template<typename KeyType>
+struct wrapped_partition_config<default_config,
                                 partition_subalgo::select_unique,
                                 KeyType,
                                 empty_type>
@@ -236,6 +251,14 @@ template<target_arch Arch>
 constexpr partition_config_params
     wrapped_partition_config<default_config,
                              partition_subalgo::select_predicate,
+                             KeyType,
+                             empty_type>::architecture_config<Arch>::params;
+
+template<typename KeyType>
+template<target_arch Arch>
+constexpr partition_config_params
+    wrapped_partition_config<default_config,
+                             partition_subalgo::select_predicated_flag,
                              KeyType,
                              empty_type>::architecture_config<Arch>::params;
 

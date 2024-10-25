@@ -135,6 +135,7 @@ inline hipError_t partition_impl(void*                       temporary_storage,
 
     constexpr bool write_only_selected = SubAlgo == partition_subalgo::select_flag
                                          || SubAlgo == partition_subalgo::select_predicate
+                                         || SubAlgo == partition_subalgo::select_predicated_flag
                                          || SubAlgo == partition_subalgo::select_unique
                                          || SubAlgo == partition_subalgo::select_unique_by_key;
 
@@ -143,9 +144,12 @@ inline hipError_t partition_impl(void*                       temporary_storage,
     constexpr bool is_flag = SubAlgo == partition_subalgo::partition_two_way_flag
                              || SubAlgo == partition_subalgo::partition_flag
                              || SubAlgo == partition_subalgo::select_flag;
+    constexpr bool is_predicated_flag = SubAlgo == partition_subalgo::select_predicated_flag;
     constexpr select_method method
-        = is_unique ? select_method::unique
-                    : (is_flag ? select_method::flag : select_method::predicate);
+        = is_unique
+              ? select_method::unique
+              : (is_predicated_flag ? select_method::predicated_flag
+                                    : (is_flag ? select_method::flag : select_method::predicate));
 
     detail::target_arch target_arch;
     hipError_t          result = host_target_arch(stream, target_arch);
