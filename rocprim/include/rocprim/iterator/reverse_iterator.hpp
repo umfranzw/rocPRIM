@@ -69,8 +69,8 @@ public:
     /// \brief Constructs a new reverse_iterator using the supplied source.
     [[deprecated("The initialisation constructor of 'rocprim::reverse_iterator<Iter>' will be "
                  "marked explicit in ROCm 7.0. Use 'rocprim::make_reverse_iterator' "
-                 "instead.")]] ROCPRIM_HOST_DEVICE constexpr /*explicit*/ reverse_iterator(
-        SourceIterator source_iterator)
+                 "instead.")]] ROCPRIM_HOST_DEVICE constexpr /*explicit*/
+        reverse_iterator(SourceIterator source_iterator)
         : source_iterator_(source_iterator)
     {}
 
