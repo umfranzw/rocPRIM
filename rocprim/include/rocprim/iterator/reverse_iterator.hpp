@@ -63,30 +63,24 @@ public:
     using iterator_category = std::random_access_iterator_tag;
 
     /// \brief Constructs a new default reverse_iterator.
-    ROCPRIM_PRAGMA_MESSAGE("The default constructor of 'rocprim::reverse_iterator<Iter>' is "
-                           "deprecated until ROCm 7.0.")
     ROCPRIM_HOST_DEVICE constexpr reverse_iterator()
         : source_iterator_(nullptr)
     {}
 
     /// \brief Constructs a new reverse_iterator using the supplied source.
-    ROCPRIM_PRAGMA_MESSAGE("The initialisation constructor of 'rocprim::reverse_iterator<Iter>' is "
-                           "deprecated until ROCm 7.0.")
-    ROCPRIM_HOST_DEVICE constexpr explicit reverse_iterator(SourceIterator source_iterator)
+    [[deprecated("The initialisation constructor of 'rocprim::reverse_iterator<Iter>' will be marked explicit in ROCm 7.0. Use 'rocprim::make_reverse_iterator' instead.")]]
+    ROCPRIM_HOST_DEVICE constexpr /*explicit*/ reverse_iterator(SourceIterator source_iterator)
         : source_iterator_(source_iterator)
     {}
 
     /// \brief Constructs a new reverse_iterator using that of the supplied source.
     template<class OtherSourceIterator>
-    ROCPRIM_PRAGMA_MESSAGE(
-        "The copy constructor of 'rocprim::reverse_iterator<Iter>' is deprecated until ROCm 7.0.")
     ROCPRIM_HOST_DEVICE constexpr reverse_iterator(
         const reverse_iterator<OtherSourceIterator>& source_reverse_iterator)
         : source_iterator_(source_reverse_iterator.base())
     {}
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-    ROCPRIM_PRAGMA_MESSAGE("'rocprim::reverse_iterator<Iter>::base' is deprecated until ROCm 7.0.")
     ROCPRIM_HOST_DEVICE constexpr SourceIterator base() const
     {
         return source_iterator_;
@@ -246,7 +240,10 @@ template<class SourceIterator>
 ROCPRIM_HOST_DEVICE
 constexpr reverse_iterator<SourceIterator> make_reverse_iterator(SourceIterator source_iterator)
 {
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     return reverse_iterator<SourceIterator>(source_iterator);
+    #pragma clang diagnostic pop
 }
 
 END_ROCPRIM_NAMESPACE
