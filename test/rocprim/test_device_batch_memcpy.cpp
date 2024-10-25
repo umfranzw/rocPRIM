@@ -341,9 +341,10 @@ TYPED_TEST(RocprimDeviceBatchMemcpyTests, SizeAndTypeVariation)
     constexpr int32_t num_tlev = num_buffers - num_blev - num_wlev;
 
     // Get random buffer sizes
-    for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; ++seed_index)
+    for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; ++seed_index)
     {
-        seed_type seed_value = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
+        seed_type seed_value
+            = seed_index < random_seeds_count ? rand() : seeds[seed_index - random_seeds_count];
         SCOPED_TRACE(testing::Message() << "with seed= " << seed_value);
         std::mt19937_64 rng{seed_value};
 
@@ -355,12 +356,16 @@ TYPED_TEST(RocprimDeviceBatchMemcpyTests, SizeAndTypeVariation)
             iter = test_utils::generate_random_data_n(iter, num_tlev, 1, wlev_min_elems - 1, rng);
         if(num_wlev > 0)
             iter = test_utils::generate_random_data_n(iter,
-                                                    num_wlev,
-                                                    wlev_min_elems,
-                                                    blev_min_elems - 1,
-                                                    rng);
+                                                      num_wlev,
+                                                      wlev_min_elems,
+                                                      blev_min_elems - 1,
+                                                      rng);
         if(num_blev > 0)
-            iter = test_utils::generate_random_data_n(iter, num_blev, blev_min_elems, max_elems, rng);
+            iter = test_utils::generate_random_data_n(iter,
+                                                      num_blev,
+                                                      blev_min_elems,
+                                                      max_elems,
+                                                      rng);
 
         const byte_offset_type total_num_elements = std::accumulate(h_buffer_num_elements.begin(),
                                                                     h_buffer_num_elements.end(),
@@ -384,12 +389,12 @@ TYPED_TEST(RocprimDeviceBatchMemcpyTests, SizeAndTypeVariation)
         size_t temp_storage_bytes = 0;
 
         batch_copy<isMemCpy>(nullptr,
-                            temp_storage_bytes,
-                            d_buffer_srcs,
-                            d_buffer_dsts,
-                            d_buffer_sizes,
-                            num_buffers,
-                            hipStreamDefault);
+                             temp_storage_bytes,
+                             d_buffer_srcs,
+                             d_buffer_dsts,
+                             d_buffer_sizes,
+                             num_buffers,
+                             hipStreamDefault);
 
         void* d_temp_storage = nullptr;
 
@@ -425,11 +430,11 @@ TYPED_TEST(RocprimDeviceBatchMemcpyTests, SizeAndTypeVariation)
             // Consecutive offsets (no shuffling).
             // src/dst offsets first element is 0, so skip that!
             std::partial_sum(h_buffer_num_elements.begin(),
-                            h_buffer_num_elements.end() - 1,
-                            src_offsets.begin() + 1);
+                             h_buffer_num_elements.end() - 1,
+                             src_offsets.begin() + 1);
             std::partial_sum(h_buffer_num_elements.begin(),
-                            h_buffer_num_elements.end() - 1,
-                            dst_offsets.begin() + 1);
+                             h_buffer_num_elements.end() - 1,
+                             dst_offsets.begin() + 1);
         }
 
         // Get the byte size of each buffer
@@ -452,8 +457,10 @@ TYPED_TEST(RocprimDeviceBatchMemcpyTests, SizeAndTypeVariation)
         // Prepare the batch memcpy.
         if(isMemCpy)
         {
-            HIP_CHECK(
-                hipMemcpy(d_input, h_input_for_memcpy.data(), total_num_bytes, hipMemcpyHostToDevice));
+            HIP_CHECK(hipMemcpy(d_input,
+                                h_input_for_memcpy.data(),
+                                total_num_bytes,
+                                hipMemcpyHostToDevice));
             HIP_CHECK(hipMemcpy(d_buffer_sizes,
                                 h_buffer_num_bytes.data(),
                                 h_buffer_num_bytes.size() * sizeof(*d_buffer_sizes),
@@ -461,8 +468,10 @@ TYPED_TEST(RocprimDeviceBatchMemcpyTests, SizeAndTypeVariation)
         }
         else
         {
-            HIP_CHECK(
-                hipMemcpy(d_input, h_input_for_copy.data(), total_num_bytes, hipMemcpyHostToDevice));
+            HIP_CHECK(hipMemcpy(d_input,
+                                h_input_for_copy.data(),
+                                total_num_bytes,
+                                hipMemcpyHostToDevice));
             HIP_CHECK(hipMemcpy(d_buffer_sizes,
                                 h_buffer_num_elements.data(),
                                 h_buffer_num_elements.size() * sizeof(*d_buffer_sizes),
@@ -480,23 +489,23 @@ TYPED_TEST(RocprimDeviceBatchMemcpyTests, SizeAndTypeVariation)
 
         // Run batched memcpy.
         batch_copy<isMemCpy>(d_temp_storage,
-                            temp_storage_bytes,
-                            d_buffer_srcs,
-                            d_buffer_dsts,
-                            d_buffer_sizes,
-                            num_buffers,
-                            hipStreamDefault);
+                             temp_storage_bytes,
+                             d_buffer_srcs,
+                             d_buffer_dsts,
+                             d_buffer_sizes,
+                             num_buffers,
+                             hipStreamDefault);
 
         // Verify results.
         check_result<isMemCpy>(h_input_for_memcpy,
-                            h_input_for_copy,
-                            d_output,
-                            total_num_bytes,
-                            total_num_elements,
-                            num_buffers,
-                            src_offsets,
-                            dst_offsets,
-                            h_buffer_num_bytes);
+                               h_input_for_copy,
+                               d_output,
+                               total_num_bytes,
+                               total_num_elements,
+                               num_buffers,
+                               src_offsets,
+                               dst_offsets,
+                               h_buffer_num_bytes);
 
         HIP_CHECK(hipFree(d_temp_storage));
         HIP_CHECK(hipFree(d_buffer_sizes));
