@@ -27,6 +27,7 @@
 #include "test_utils_custom_float_type.hpp"
 #include "test_utils_custom_test_types.hpp"
 #include "test_utils_data_generation.hpp"
+#include "test_utils_sort_comparator.hpp"
 #include "test_utils_types.hpp"
 
 #include "../common_test_header.hpp"
@@ -50,12 +51,14 @@ template<class KeyType,
          class CompareFunction    = ::rocprim::less<KeyType>,
          class Config             = ::rocprim::default_config,
          bool UseGraphs           = false,
-         bool UseIndirectIterator = false>
+         bool UseIndirectIterator = false,
+         class Decomposer         = ::rocprim::identity_decomposer>
 struct DevicePartialSortParams
 {
     using key_type                              = KeyType;
     using compare_function                      = CompareFunction;
     using config                                = Config;
+    using decomposer                            = Decomposer;
     static constexpr bool use_graphs            = UseGraphs;
     static constexpr bool use_indirect_iterator = UseIndirectIterator;
 };
@@ -67,6 +70,7 @@ public:
     using key_type                              = typename Params::key_type;
     using compare_function                      = typename Params::compare_function;
     using config                                = typename Params::config;
+    using decomposer                            = typename Params::decomposer;
     const bool            debug_synchronous     = false;
     static constexpr bool use_graphs            = Params::use_graphs;
     static constexpr bool use_indirect_iterator = Params::use_indirect_iterator;
@@ -95,7 +99,14 @@ using RocprimDevicePartialSortTestsParams = ::testing::Types<
         ::rocprim::less<int>,
         rocprim::partial_sort_config<
             rocprim::
-                nth_element_config<128, 4, 32, 16, rocprim::block_radix_rank_algorithm::basic>>>>;
+                nth_element_config<128, 4, 32, 16, rocprim::block_radix_rank_algorithm::basic>>>,
+    DevicePartialSortParams<
+        test_utils::custom_test_type<int>,
+        ::rocprim::less<test_utils::custom_test_type<int>>,
+        rocprim::default_config,
+        false,
+        false,
+        test_utils::custom_test_type_decomposer<test_utils::custom_test_type<int>>>>;
 
 template<class InputVector, class OutputVector, class CompareFunction>
 void inline compare_partial_sort_cpp_14(InputVector     input,
@@ -179,6 +190,7 @@ TYPED_TEST(RocprimDevicePartialSortTests, PartialSort)
     using key_type                              = std::remove_cv_t<typename TestFixture::key_type>;
     using compare_function                      = typename TestFixture::compare_function;
     using config                                = typename TestFixture::config;
+    using decomposer                            = typename TestFixture::decomposer;
     const bool            debug_synchronous     = TestFixture::debug_synchronous;
     constexpr bool        use_indirect_iterator = TestFixture::use_indirect_iterator;
 
@@ -230,6 +242,7 @@ TYPED_TEST(RocprimDevicePartialSortTests, PartialSort)
                     = test_utils::wrap_in_indirect_iterator<use_indirect_iterator>(d_input);
 
                 compare_function compare_op;
+                decomposer       decomposer_op;
 
                 // Allocate temporary storage
                 size_t temp_storage_size_bytes{};
@@ -240,7 +253,8 @@ TYPED_TEST(RocprimDevicePartialSortTests, PartialSort)
                                                         size,
                                                         compare_op,
                                                         stream,
-                                                        debug_synchronous));
+                                                        debug_synchronous,
+                                                        decomposer_op));
 
                 ASSERT_GT(temp_storage_size_bytes, 0);
                 void* d_temp_storage{};
@@ -376,6 +390,7 @@ TYPED_TEST(RocprimDevicePartialSortTests, PartialSortCopy)
     using key_type                              = std::remove_cv_t<typename TestFixture::key_type>;
     using compare_function                      = typename TestFixture::compare_function;
     using config                                = typename TestFixture::config;
+    using decomposer                            = typename TestFixture::decomposer;
     const bool            debug_synchronous     = TestFixture::debug_synchronous;
     constexpr bool        input_is_const        = std::is_const_v<typename TestFixture::key_type>;
     constexpr bool        use_indirect_iterator = TestFixture::use_indirect_iterator;
@@ -438,6 +453,7 @@ TYPED_TEST(RocprimDevicePartialSortTests, PartialSortCopy)
                     test_utils::wrap_in_const<input_is_const>(d_input));
 
                 compare_function compare_op;
+                decomposer       decomposer_op;
 
                 // Allocate temporary storage
                 size_t temp_storage_size_bytes{};
@@ -450,7 +466,8 @@ TYPED_TEST(RocprimDevicePartialSortTests, PartialSortCopy)
                                                              size,
                                                              compare_op,
                                                              stream,
-                                                             debug_synchronous));
+                                                             debug_synchronous,
+                                                             decomposer_op));
 
                 ASSERT_GT(temp_storage_size_bytes, 0);
                 void* d_temp_storage{};
