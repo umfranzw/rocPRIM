@@ -675,6 +675,7 @@ inline hipError_t histogram_even(void*          temporary_storage,
 ///   internally a vector type of elements of type \p SampleIterator and length \p Channels is used
 ///   to represent the input items, so the amount of local memory available will limit the range of
 ///   possible values for this template parameter.
+/// * \p ActiveChannels must be less or equal than \p Channels.
 ///
 /// \par Example
 /// \parblock
@@ -795,6 +796,7 @@ inline hipError_t multi_histogram_even(void*          temporary_storage,
 ///   internally a vector type of elements of type \p SampleIterator and length \p Channels is used
 ///   to represent the input items, so the amount of local memory available will limit the range of
 ///   possible values for this template parameter.
+/// * \p ActiveChannels must be less or equal than \p Channels.
 ///
 /// \par Example
 /// \parblock
@@ -1108,6 +1110,7 @@ inline hipError_t histogram_range(void*          temporary_storage,
 ///   internally a vector type of elements of type \p SampleIterator and length \p Channels is used
 ///   to represent the input items, so the amount of local memory available will limit the range of
 ///   possible values for this template parameter.
+/// * \p ActiveChannels must be less or equal than \p Channels.
 ///
 /// \par Example
 /// \parblock
@@ -1223,6 +1226,7 @@ inline hipError_t multi_histogram_range(void*          temporary_storage,
 ///   internally a vector type of elements of type \p SampleIterator and length \p Channels is used
 ///   to represent the input items, so the amount of local memory available will limit the range of
 ///   possible values for this template parameter.
+/// * \p ActiveChannels must be less or equal than \p Channels.
 ///
 /// \par Example
 /// \parblock
