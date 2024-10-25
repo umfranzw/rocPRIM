@@ -63,22 +63,26 @@ public:
     using iterator_category = std::random_access_iterator_tag;
 
     /// \brief Constructs a new default reverse_iterator.
+    [[deprecated("until ROCm 7.0")]]
     ROCPRIM_HOST_DEVICE constexpr reverse_iterator() : source_iterator_(nullptr)
     {}
 
     /// \brief Constructs a new reverse_iterator using the supplied source.
+    [[deprecated("until ROCm 7.0")]]
     ROCPRIM_HOST_DEVICE constexpr explicit reverse_iterator(SourceIterator source_iterator)
         : source_iterator_(source_iterator)
     {}
 
     /// \brief Constructs a new reverse_iterator using that of the supplied source.
     template<class OtherSourceIterator>
+    [[deprecated("until ROCm 7.0")]]
     ROCPRIM_HOST_DEVICE constexpr reverse_iterator(
         const reverse_iterator<OtherSourceIterator>& source_reverse_iterator)
         : source_iterator_(source_reverse_iterator.base())
     {}
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
+    [[deprecated("until ROCm 7.0")]]
     ROCPRIM_HOST_DEVICE
     constexpr SourceIterator base() const
     {
