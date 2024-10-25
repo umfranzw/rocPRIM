@@ -83,8 +83,7 @@ public:
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
     ROCPRIM_PRAGMA_MESSAGE("Deprecated until ROCm 7.0")
-    ROCPRIM_HOST_DEVICE
-    constexpr SourceIterator base() const
+    ROCPRIM_HOST_DEVICE constexpr SourceIterator base() const
     {
         return source_iterator_;
     }
