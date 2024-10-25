@@ -196,8 +196,8 @@ TYPED_TEST(RocprimDeviceTransformTests, Transform)
             ASSERT_NO_FATAL_FAILURE(
                 test_utils::assert_near(output, expected, test_utils::precision<U>));
 
-            hipFree(d_input);
-            hipFree(d_output);
+            HIP_CHECK(hipFree(d_input));
+            HIP_CHECK(hipFree(d_output));
 
             if (TestFixture::use_graphs)
             {
@@ -319,10 +319,10 @@ TYPED_TEST(RocprimDeviceTransformTests, BinaryTransform)
             ASSERT_NO_FATAL_FAILURE(
                 test_utils::assert_near(output, expected, test_utils::precision<U>));
 
-            hipFree(d_input1);
-            hipFree(d_input2);
-            hipFree(d_output);
-            
+            HIP_CHECK(hipFree(d_input1));
+            HIP_CHECK(hipFree(d_input2));
+            HIP_CHECK(hipFree(d_output));
+
             if (TestFixture::use_graphs)
             {
                  gHelper.cleanupGraphHelper();

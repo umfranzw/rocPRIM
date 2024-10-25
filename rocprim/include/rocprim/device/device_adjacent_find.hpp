@@ -165,12 +165,12 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
             start);
     }
 
-    ::rocprim::transform(reduce_output,
-                         output,
-                         1,
-                         ::rocprim::identity<void>(),
-                         stream,
-                         debug_synchronous);
+    ROCPRIM_RETURN_ON_ERROR(::rocprim::transform(reduce_output,
+                                                 output,
+                                                 1,
+                                                 ::rocprim::identity<void>(),
+                                                 stream,
+                                                 debug_synchronous));
 
     return hipSuccess;
 }

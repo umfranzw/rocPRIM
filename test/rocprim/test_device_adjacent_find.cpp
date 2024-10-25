@@ -224,9 +224,9 @@ TYPED_TEST(RocprimDeviceAdjacentFindTests, AdjacentFind)
             ASSERT_EQ(output, expected);
 
             // Cleanup
-            hipFree(d_input);
-            hipFree(d_output);
-            hipFree(d_tmp_storage);
+            HIP_CHECK(hipFree(d_input));
+            HIP_CHECK(hipFree(d_output));
+            HIP_CHECK(hipFree(d_tmp_storage));
 
             if(TestFixture::use_graphs)
             {

@@ -210,16 +210,16 @@ struct device_select_flag_benchmark : public config_autotune_interface
         state.SetBytesProcessed(state.iterations() * batch_size * size * sizeof(DataType));
         state.SetItemsProcessed(state.iterations() * batch_size * size);
 
-        hipFree(d_input);
+        HIP_CHECK(hipFree(d_input));
         if(is_tuning)
         {
-            hipFree(d_flags_2);
-            hipFree(d_flags_1);
+            HIP_CHECK(hipFree(d_flags_2));
+            HIP_CHECK(hipFree(d_flags_1));
         }
-        hipFree(d_flags_0);
-        hipFree(d_output);
-        hipFree(d_selected_count_output);
-        hipFree(d_temp_storage);
+        HIP_CHECK(hipFree(d_flags_0));
+        HIP_CHECK(hipFree(d_output));
+        HIP_CHECK(hipFree(d_selected_count_output));
+        HIP_CHECK(hipFree(d_temp_storage));
     }
 
     static constexpr bool is_tuning = Probability == select_probability::tuning;
@@ -327,10 +327,10 @@ struct device_select_predicate_benchmark : public config_autotune_interface
         state.SetBytesProcessed(state.iterations() * batch_size * size * sizeof(DataType));
         state.SetItemsProcessed(state.iterations() * batch_size * size);
 
-        hipFree(d_input);
-        hipFree(d_output);
-        hipFree(d_selected_count_output);
-        hipFree(d_temp_storage);
+        HIP_CHECK(hipFree(d_input));
+        HIP_CHECK(hipFree(d_output));
+        HIP_CHECK(hipFree(d_selected_count_output));
+        HIP_CHECK(hipFree(d_temp_storage));
     }
 
     static constexpr bool is_tuning = Probability == select_probability::tuning;
@@ -479,13 +479,13 @@ struct device_select_unique_benchmark : public config_autotune_interface
 
         if(is_tuning)
         {
-            hipFree(d_input_2);
-            hipFree(d_input_1);
+            HIP_CHECK(hipFree(d_input_2));
+            HIP_CHECK(hipFree(d_input_1));
         }
-        hipFree(d_input_0);
-        hipFree(d_output);
-        hipFree(d_selected_count_output);
-        hipFree(d_temp_storage);
+        HIP_CHECK(hipFree(d_input_0));
+        HIP_CHECK(hipFree(d_output));
+        HIP_CHECK(hipFree(d_selected_count_output));
+        HIP_CHECK(hipFree(d_temp_storage));
     }
 
     static constexpr bool is_tuning = Probability == select_probability::tuning;
@@ -640,15 +640,15 @@ struct device_select_unique_by_key_benchmark : public config_autotune_interface
 
         if(is_tuning)
         {
-            hipFree(d_keys_input_2);
-            hipFree(d_keys_input_1);
+            HIP_CHECK(hipFree(d_keys_input_2));
+            HIP_CHECK(hipFree(d_keys_input_1));
         }
-        hipFree(d_keys_input_0);
-        hipFree(d_values_input);
-        hipFree(d_keys_output);
-        hipFree(d_values_output);
-        hipFree(d_selected_count_output);
-        hipFree(d_temp_storage);
+        HIP_CHECK(hipFree(d_keys_input_0));
+        HIP_CHECK(hipFree(d_values_input));
+        HIP_CHECK(hipFree(d_keys_output));
+        HIP_CHECK(hipFree(d_values_output));
+        HIP_CHECK(hipFree(d_selected_count_output));
+        HIP_CHECK(hipFree(d_temp_storage));
     }
 
     static constexpr bool is_tuning = Probability == select_probability::tuning;

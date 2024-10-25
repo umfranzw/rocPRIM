@@ -221,11 +221,11 @@ TYPED_TEST(RocprimDeviceSelectTests, Flagged)
             HIP_CHECK(hipDeviceSynchronize());
             ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(output, expected, expected.size()));
 
-            hipFree(d_input);
-            hipFree(d_flags);
-            hipFree(d_output);
-            hipFree(d_selected_count_output);
-            hipFree(d_temp_storage);
+            HIP_CHECK(hipFree(d_input));
+            HIP_CHECK(hipFree(d_flags));
+            HIP_CHECK(hipFree(d_output));
+            HIP_CHECK(hipFree(d_selected_count_output));
+            HIP_CHECK(hipFree(d_temp_storage));
 
             if(TestFixture::use_graphs)
             {
@@ -384,10 +384,10 @@ TYPED_TEST(RocprimDeviceSelectTests, SelectOp)
             HIP_CHECK(hipDeviceSynchronize());
             ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(output, expected, expected.size()));
 
-            hipFree(d_input);
-            hipFree(d_output);
-            hipFree(d_selected_count_output);
-            hipFree(d_temp_storage);
+            HIP_CHECK(hipFree(d_input));
+            HIP_CHECK(hipFree(d_output));
+            HIP_CHECK(hipFree(d_selected_count_output));
+            HIP_CHECK(hipFree(d_temp_storage));
 
             if(TestFixture::use_graphs)
             {
@@ -562,10 +562,10 @@ TYPED_TEST(RocprimDeviceSelectTests, Unique)
                 HIP_CHECK(hipDeviceSynchronize());
                 ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(output, expected, expected.size()));
 
-                hipFree(d_input);
-                hipFree(d_output);
-                hipFree(d_selected_count_output);
-                hipFree(d_temp_storage);
+                HIP_CHECK(hipFree(d_input));
+                HIP_CHECK(hipFree(d_output));
+                HIP_CHECK(hipFree(d_selected_count_output));
+                HIP_CHECK(hipFree(d_temp_storage));
 
                 if(TestFixture::use_graphs)
                 {
@@ -770,11 +770,11 @@ void testUniqueGuardedOperator()
                 HIP_CHECK(hipDeviceSynchronize());
                 ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(output, expected, expected.size()));
 
-                hipFree(d_input);
-                hipFree(d_flag);
-                hipFree(d_output);
-                hipFree(d_selected_count_output);
-                hipFree(d_temp_storage);
+                HIP_CHECK(hipFree(d_input));
+                HIP_CHECK(hipFree(d_flag));
+                HIP_CHECK(hipFree(d_output));
+                HIP_CHECK(hipFree(d_selected_count_output));
+                HIP_CHECK(hipFree(d_temp_storage));
 
                 if(UseGraphs)
                 {
@@ -1033,12 +1033,12 @@ TYPED_TEST(RocprimDeviceUniqueByKeyTests, UniqueByKey)
                 ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(output_keys, expected_keys, expected_keys.size()));
                 ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(output_values, expected_values, expected_values.size()));
 
-                hipFree(d_keys_input);
-                hipFree(d_values_input);
-                hipFree(d_keys_output);
-                hipFree(d_values_output);
-                hipFree(d_selected_count_output);
-                hipFree(d_temp_storage);
+                HIP_CHECK(hipFree(d_keys_input));
+                HIP_CHECK(hipFree(d_values_input));
+                HIP_CHECK(hipFree(d_keys_output));
+                HIP_CHECK(hipFree(d_values_output));
+                HIP_CHECK(hipFree(d_selected_count_output));
+                HIP_CHECK(hipFree(d_temp_storage));
 
                 if(TestFixture::use_graphs)
                 {
@@ -1229,10 +1229,10 @@ TYPED_TEST(RocprimDeviceUniqueByKeyTests, UniqueByKeyAlias)
                 ASSERT_NO_FATAL_FAILURE(
                     test_utils::assert_eq(output_values, expected_values, expected_values.size()));
 
-                hipFree(d_keys_input);
-                hipFree(d_values_input);
-                hipFree(d_selected_count_output);
-                hipFree(d_temp_storage);
+                HIP_CHECK(hipFree(d_keys_input));
+                HIP_CHECK(hipFree(d_values_input));
+                HIP_CHECK(hipFree(d_selected_count_output));
+                HIP_CHECK(hipFree(d_temp_storage));
 
                 if(TestFixture::use_graphs)
                 {
@@ -1397,9 +1397,9 @@ TEST_P(RocprimDeviceSelectLargeInputTests, LargeInputFlagged)
 
         ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(output, expected_output, expected_output.size()));
 
-        hipFree(d_output);
-        hipFree(d_selected_count_output);
-        hipFree(d_temp_storage);
+        HIP_CHECK(hipFree(d_output));
+        HIP_CHECK(hipFree(d_selected_count_output));
+        HIP_CHECK(hipFree(d_temp_storage));
 
         if(use_graphs)
         {

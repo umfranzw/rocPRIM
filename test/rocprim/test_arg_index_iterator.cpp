@@ -196,8 +196,8 @@ TYPED_TEST(RocprimArgIndexIteratorTests, ReduceArgMinimum)
         test_utils::assert_eq(output[0].key, expected.key);
         test_utils::assert_eq(output[0].value, expected.value);
 
-        hipFree(d_input);
-        hipFree(d_output);
-        hipFree(d_temp_storage);
+        HIP_CHECK(hipFree(d_input));
+        HIP_CHECK(hipFree(d_output));
+        HIP_CHECK(hipFree(d_temp_storage));
     }
 }

@@ -251,10 +251,10 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKey)
             // Check if keys_output values are as expected
             ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(keys_output, expected));
 
-            hipFree(d_keys_input1);
-            hipFree(d_keys_input2);
-            hipFree(d_keys_output);
-            hipFree(d_temp_storage);
+            HIP_CHECK(hipFree(d_keys_input1));
+            HIP_CHECK(hipFree(d_keys_input2));
+            HIP_CHECK(hipFree(d_keys_output));
+            HIP_CHECK(hipFree(d_temp_storage));
 
             if (TestFixture::use_graphs)
                 gHelper.cleanupGraphHelper();
@@ -472,13 +472,13 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKeyValue)
             ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(keys_output, expected_key));
             ASSERT_NO_FATAL_FAILURE(test_utils::assert_eq(values_output, expected_value));
 
-            hipFree(d_keys_input1);
-            hipFree(d_keys_input2);
-            hipFree(d_keys_output);
-            hipFree(d_values_input1);
-            hipFree(d_values_input2);
-            hipFree(d_values_output);
-            hipFree(d_temp_storage);
+            HIP_CHECK(hipFree(d_keys_input1));
+            HIP_CHECK(hipFree(d_keys_input2));
+            HIP_CHECK(hipFree(d_keys_output));
+            HIP_CHECK(hipFree(d_values_input1));
+            HIP_CHECK(hipFree(d_values_input2));
+            HIP_CHECK(hipFree(d_values_output));
+            HIP_CHECK(hipFree(d_temp_storage));
 
             if (TestFixture::use_graphs)
                 gHelper.cleanupGraphHelper();
@@ -522,9 +522,9 @@ void testMergeMismatchedIteratorTypes()
                         keys_input1.size() * sizeof(keys_input1[0]),
                         hipMemcpyHostToDevice));
 
-    const auto d_keys_input2 = rocprim::make_transform_iterator(rocprim::make_counting_iterator(0),
-                                                                [] __host__ __device__(int value)
-                                                                { return value * 2 + 1; });
+    const auto d_keys_input2
+        = rocprim::make_transform_iterator(rocprim::make_counting_iterator(0),
+                                           [](int value) { return value * 2 + 1; });
 
     static constexpr bool debug_synchronous = false;
 

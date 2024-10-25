@@ -105,7 +105,7 @@ struct device_merge_sort_block_merge_benchmark : public config_autotune_interfac
                             keys_input.data(),
                             size * sizeof(key_type),
                             hipMemcpyHostToDevice));
-        hipDeviceSynchronize();
+        HIP_CHECK(hipDeviceSynchronize());
 
         ::rocprim::less<key_type> lesser_op;
         rocprim::empty_type*      values_ptr = nullptr;
@@ -175,11 +175,11 @@ struct device_merge_sort_block_merge_benchmark : public config_autotune_interfac
         for(auto _ : state)
         {
             // Record start event
-            hipMemcpyAsync(d_keys,
-                           d_keys_input,
-                           size * sizeof(key_type),
-                           hipMemcpyDeviceToDevice,
-                           stream);
+            HIP_CHECK(hipMemcpyAsync(d_keys,
+                                     d_keys_input,
+                                     size * sizeof(key_type),
+                                     hipMemcpyDeviceToDevice,
+                                     stream));
             HIP_CHECK(hipEventRecord(start, stream));
             HIP_CHECK(rp::detail::merge_sort_block_merge<Config>(d_temporary_storage,
                                                                  temporary_storage_bytes,
@@ -254,7 +254,7 @@ struct device_merge_sort_block_merge_benchmark : public config_autotune_interfac
                             size * sizeof(value_type),
                             hipMemcpyHostToDevice));
 
-        hipDeviceSynchronize();
+        HIP_CHECK(hipDeviceSynchronize());
 
         ::rocprim::less<key_type> lesser_op;
 
@@ -325,16 +325,16 @@ struct device_merge_sort_block_merge_benchmark : public config_autotune_interfac
         for(auto _ : state)
         {
             // Record start event
-            hipMemcpyAsync(d_keys,
-                           d_keys_input,
-                           size * sizeof(key_type),
-                           hipMemcpyDeviceToDevice,
-                           stream);
-            hipMemcpyAsync(d_values,
-                           d_values_input,
-                           size * sizeof(key_type),
-                           hipMemcpyDeviceToDevice,
-                           stream);
+            HIP_CHECK(hipMemcpyAsync(d_keys,
+                                     d_keys_input,
+                                     size * sizeof(key_type),
+                                     hipMemcpyDeviceToDevice,
+                                     stream));
+            HIP_CHECK(hipMemcpyAsync(d_values,
+                                     d_values_input,
+                                     size * sizeof(key_type),
+                                     hipMemcpyDeviceToDevice,
+                                     stream));
             HIP_CHECK(hipEventRecord(start, stream));
             HIP_CHECK(rp::detail::merge_sort_block_merge<Config>(d_temporary_storage,
                                                                  temporary_storage_bytes,

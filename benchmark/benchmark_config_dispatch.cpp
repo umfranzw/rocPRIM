@@ -63,7 +63,7 @@ static void BM_kernel_launch(benchmark::State& state)
         hipLaunchKernelGGL(empty_kernel, dim3(1), dim3(1), 0, stream);
         HIP_CHECK(hipGetLastError());
     }
-    hipStreamSynchronize(stream);
+    HIP_CHECK(hipStreamSynchronize(stream));
 }
 
 #define CREATE_BENCHMARK(ST, SK)                \
