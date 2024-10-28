@@ -378,13 +378,13 @@ hipError_t search_impl(void*          temporary_storage,
             else
             {
                 start_timer();
-                search_kernel_shared<config>
-                    <<<num_blocks, block_size, 0, stream>>>(make_reverse_iterator(input + size),
-                                                            make_reverse_iterator(keys + keys_size),
-                                                            tmp_output,
-                                                            size,
-                                                            keys_size,
-                                                            compare_function);
+                search_kernel_shared<config><<<num_blocks, block_size, 0, stream>>>(
+                    rocprim::make_reverse_iterator(input + size),
+                    rocprim::make_reverse_iterator(keys + keys_size),
+                    tmp_output,
+                    size,
+                    keys_size,
+                    compare_function);
                 ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_kernel_shared", size, start);
             }
         }
@@ -404,13 +404,13 @@ hipError_t search_impl(void*          temporary_storage,
             else
             {
                 start_timer();
-                search_kernel<config>
-                    <<<num_blocks, block_size, 0, stream>>>(make_reverse_iterator(input + size),
-                                                            make_reverse_iterator(keys + keys_size),
-                                                            tmp_output,
-                                                            size,
-                                                            keys_size,
-                                                            compare_function);
+                search_kernel<config><<<num_blocks, block_size, 0, stream>>>(
+                    rocprim::make_reverse_iterator(input + size),
+                    rocprim::make_reverse_iterator(keys + keys_size),
+                    tmp_output,
+                    size,
+                    keys_size,
+                    compare_function);
                 ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_kernel", size, start);
             }
         }
