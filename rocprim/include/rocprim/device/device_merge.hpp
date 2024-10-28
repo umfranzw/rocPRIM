@@ -41,21 +41,20 @@ BEGIN_ROCPRIM_NAMESPACE
 namespace detail
 {
 
-template<
-    class IndexIterator,
-    class KeysInputIterator1,
-    class KeysInputIterator2,
-    class BinaryFunction
->
+template<class Config,
+         class IndexIterator,
+         class KeysInputIterator1,
+         class KeysInputIterator2,
+         class BinaryFunction>
 ROCPRIM_KERNEL
-__launch_bounds__(ROCPRIM_DEFAULT_MAX_BLOCK_SIZE)
-void partition_kernel(IndexIterator index,
+__launch_bounds__(device_params<Config>().kernel_config.block_size)
+void partition_kernel(IndexIterator      index,
                       KeysInputIterator1 keys_input1,
                       KeysInputIterator2 keys_input2,
-                      const size_t input1_size,
-                      const size_t input2_size,
+                      const size_t       input1_size,
+                      const size_t       input2_size,
                       const unsigned int spacing,
-                      BinaryFunction compare_function)
+                      BinaryFunction     compare_function)
 {
     partition_kernel_impl(
         index, keys_input1, keys_input2, input1_size, input2_size,
@@ -63,36 +62,40 @@ void partition_kernel(IndexIterator index,
     );
 }
 
-template<
-    unsigned int BlockSize,
-    unsigned int ItemsPerThread,
-    class IndexIterator,
-    class KeysInputIterator1,
-    class KeysInputIterator2,
-    class KeysOutputIterator,
-    class ValuesInputIterator1,
-    class ValuesInputIterator2,
-    class ValuesOutputIterator,
-    class BinaryFunction
->
+template<class Config,
+         class IndexIterator,
+         class KeysInputIterator1,
+         class KeysInputIterator2,
+         class KeysOutputIterator,
+         class ValuesInputIterator1,
+         class ValuesInputIterator2,
+         class ValuesOutputIterator,
+         class BinaryFunction>
 ROCPRIM_KERNEL
-__launch_bounds__(BlockSize)
-void merge_kernel(IndexIterator index,
-                  KeysInputIterator1 keys_input1,
-                  KeysInputIterator2 keys_input2,
-                  KeysOutputIterator keys_output,
+__launch_bounds__(device_params<Config>().kernel_config.block_size)
+void merge_kernel(IndexIterator        index,
+                  KeysInputIterator1   keys_input1,
+                  KeysInputIterator2   keys_input2,
+                  KeysOutputIterator   keys_output,
                   ValuesInputIterator1 values_input1,
                   ValuesInputIterator2 values_input2,
                   ValuesOutputIterator values_output,
-                  const size_t input1_size,
-                  const size_t input2_size,
-                  BinaryFunction compare_function)
+                  const size_t         input1_size,
+                  const size_t         input2_size,
+                  BinaryFunction       compare_function)
 {
-    merge_kernel_impl<BlockSize, ItemsPerThread>(
-        index, keys_input1, keys_input2, keys_output,
-        values_input1, values_input2, values_output,
-        input1_size, input2_size, compare_function
-    );
+    static constexpr merge_config_params params = device_params<Config>();
+    merge_kernel_impl<params.kernel_config.block_size, params.kernel_config.items_per_thread>(
+        index,
+        keys_input1,
+        keys_input2,
+        keys_output,
+        values_input1,
+        values_input2,
+        values_output,
+        input1_size,
+        input2_size,
+        compare_function);
 }
 
 template<
@@ -124,16 +127,20 @@ hipError_t merge_impl(void * temporary_storage,
     using key_type = typename std::iterator_traits<KeysInputIterator1>::value_type;
     using value_type = typename std::iterator_traits<ValuesInputIterator1>::value_type;
 
-    // Get default config if Config is default_config
-    using config = detail::default_or_custom_config<
-        Config,
-        detail::default_merge_config<ROCPRIM_TARGET_ARCH, key_type, value_type>
-    >;
+    using config = wrapped_merge_config<Config, key_type, value_type>;
 
-    static constexpr unsigned int block_size = config::block_size;
-    static constexpr unsigned int half_block = block_size / 2;
-    static constexpr unsigned int items_per_thread = config::items_per_thread;
-    static constexpr auto items_per_block = block_size * items_per_thread;
+    detail::target_arch target_arch;
+    hipError_t          result = detail::host_target_arch(stream, target_arch);
+    if(result != hipSuccess)
+    {
+        return result;
+    }
+    const merge_config_params params = detail::dispatch_target_arch<config>(target_arch);
+
+    const unsigned int block_size       = params.kernel_config.block_size;
+    const unsigned int half_block       = block_size / 2;
+    const unsigned int items_per_thread = params.kernel_config.items_per_thread;
+    const auto         items_per_block  = block_size * items_per_thread;
 
     const unsigned int partitions
         = ((input1_size + input2_size) + items_per_block - 1) / items_per_block;
@@ -166,22 +173,36 @@ hipError_t merge_impl(void * temporary_storage,
     const unsigned partition_blocks = ((partitions + 1) + half_block - 1) / half_block;
 
     if(debug_synchronous) start = std::chrono::steady_clock::now();
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(detail::partition_kernel),
-        dim3(partition_blocks), dim3(half_block), 0, stream,
-        index, keys_input1, keys_input2, input1_size, input2_size,
-        items_per_block, compare_function
-    );
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(detail::partition_kernel<config>),
+                       dim3(partition_blocks),
+                       dim3(half_block),
+                       0,
+                       stream,
+                       index,
+                       keys_input1,
+                       keys_input2,
+                       input1_size,
+                       input2_size,
+                       items_per_block,
+                       compare_function);
     ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("partition_kernel", input1_size, start);
 
     if(debug_synchronous) start = std::chrono::steady_clock::now();
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(detail::merge_kernel<block_size, items_per_thread>),
-        dim3(number_of_blocks), dim3(block_size), 0, stream,
-        index, keys_input1, keys_input2, keys_output,
-        values_input1, values_input2, values_output,
-        input1_size, input2_size, compare_function
-    );
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(detail::merge_kernel<config>),
+                       dim3(number_of_blocks),
+                       dim3(block_size),
+                       0,
+                       stream,
+                       index,
+                       keys_input1,
+                       keys_input2,
+                       keys_output,
+                       values_input1,
+                       values_input2,
+                       values_output,
+                       input1_size,
+                       input2_size,
+                       compare_function);
     ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("merge_kernel", input1_size, start);
 
     return hipSuccess;

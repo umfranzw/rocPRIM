@@ -35,22 +35,25 @@
 #include <hip/hip_runtime.h>
 
 #include <algorithm>
+#include <fstream>
 #include <numeric>
 #include <vector>
 
+using DefaultConfig = rocprim::default_config;
+
 // Params for tests
-template<
-    class KeyType,
-    class ValueType,
-    class CompareOp = ::rocprim::less<KeyType>,
-    bool UseGraphs = false
->
+template<class KeyType,
+         class ValueType,
+         class CompareOp = ::rocprim::less<KeyType>,
+         bool UseGraphs  = false,
+         typename Config = rocprim::default_config>
 struct DeviceMergeParams
 {
     using key_type = KeyType;
     using value_type = ValueType;
     using compare_op_type = CompareOp;
     static constexpr bool use_graphs = UseGraphs;
+    using config                     = Config;
 };
 
 template<class Params>
@@ -60,6 +63,7 @@ public:
     using key_type = typename Params::key_type;
     using value_type = typename Params::value_type;
     using compare_op_type = typename Params::compare_op_type;
+    using config                            = typename Params::config;
     const bool debug_synchronous = false;
     static constexpr bool use_graphs = Params::use_graphs;
 };
@@ -107,6 +111,7 @@ TYPED_TEST_SUITE(RocprimDeviceMergeTests, RocprimDeviceMergeTestsParams);
 
 TYPED_TEST(RocprimDeviceMergeTests, MergeKey)
 {
+    using config  = typename TestFixture::config;
     int device_id = test_common_utils::obtain_device_from_ctest();
     SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
     HIP_CHECK(hipSetDevice(device_id));
@@ -195,16 +200,16 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKey)
             size_t temp_storage_size_bytes;
             void * d_temp_storage = nullptr;
             // Get size of d_temp_storage
-            HIP_CHECK(rocprim::merge(d_temp_storage,
-                                     temp_storage_size_bytes,
-                                     d_keys_input1,
-                                     d_keys_input2,
-                                     d_keys_checking_output,
-                                     keys_input1.size(),
-                                     keys_input2.size(),
-                                     compare_op,
-                                     stream,
-                                     debug_synchronous));
+            HIP_CHECK(rocprim::merge<config>(d_temp_storage,
+                                             temp_storage_size_bytes,
+                                             d_keys_input1,
+                                             d_keys_input2,
+                                             d_keys_checking_output,
+                                             keys_input1.size(),
+                                             keys_input2.size(),
+                                             compare_op,
+                                             stream,
+                                             debug_synchronous));
 
             // temp_storage_size_bytes must be >0
             ASSERT_GT(temp_storage_size_bytes, 0);
@@ -219,15 +224,16 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKey)
             }
 
             // Run
-            HIP_CHECK(
-                rocprim::merge(
-                    d_temp_storage, temp_storage_size_bytes,
-                    d_keys_input1, d_keys_input2,
-                    d_keys_checking_output,
-                    keys_input1.size(), keys_input2.size(),
-                    compare_op, stream, debug_synchronous
-                )
-            );
+            HIP_CHECK(rocprim::merge<config>(d_temp_storage,
+                                             temp_storage_size_bytes,
+                                             d_keys_input1,
+                                             d_keys_input2,
+                                             d_keys_checking_output,
+                                             keys_input1.size(),
+                                             keys_input2.size(),
+                                             compare_op,
+                                             stream,
+                                             debug_synchronous));
 
             if(TestFixture::use_graphs)
             {
@@ -267,6 +273,7 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKey)
 
 TYPED_TEST(RocprimDeviceMergeTests, MergeKeyValue)
 {
+    using config  = typename TestFixture::config;
     int device_id = test_common_utils::obtain_device_from_ctest();
     SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
     HIP_CHECK(hipSetDevice(device_id));
@@ -399,17 +406,19 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKeyValue)
             size_t temp_storage_size_bytes;
             void * d_temp_storage = nullptr;
             // Get size of d_temp_storage
-            HIP_CHECK(
-                rocprim::merge(
-                    d_temp_storage, temp_storage_size_bytes,
-                    d_keys_input1, d_keys_input2,
-                    d_keys_checking_output,
-                    d_values_input1, d_values_input2,
-                    d_values_checking_output,
-                    keys_input1.size(), keys_input2.size(),
-                    compare_op, stream, TestFixture::debug_synchronous
-                )
-            );
+            HIP_CHECK(rocprim::merge<config>(d_temp_storage,
+                                             temp_storage_size_bytes,
+                                             d_keys_input1,
+                                             d_keys_input2,
+                                             d_keys_checking_output,
+                                             d_values_input1,
+                                             d_values_input2,
+                                             d_values_checking_output,
+                                             keys_input1.size(),
+                                             keys_input2.size(),
+                                             compare_op,
+                                             stream,
+                                             TestFixture::debug_synchronous));
 
             // temp_storage_size_bytes must be >0
             ASSERT_GT(temp_storage_size_bytes, 0);
@@ -424,17 +433,19 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKeyValue)
             }
 
             // Run
-            HIP_CHECK(
-                rocprim::merge(
-                    d_temp_storage, temp_storage_size_bytes,
-                    d_keys_input1, d_keys_input2,
-                    d_keys_checking_output,
-                    d_values_input1, d_values_input2,
-                    d_values_checking_output,
-                    keys_input1.size(), keys_input2.size(),
-                    compare_op, stream, TestFixture::debug_synchronous
-                )
-            );
+            HIP_CHECK(rocprim::merge<config>(d_temp_storage,
+                                             temp_storage_size_bytes,
+                                             d_keys_input1,
+                                             d_keys_input2,
+                                             d_keys_checking_output,
+                                             d_values_input1,
+                                             d_values_input2,
+                                             d_values_checking_output,
+                                             keys_input1.size(),
+                                             keys_input2.size(),
+                                             compare_op,
+                                             stream,
+                                             TestFixture::debug_synchronous));
 
             if(TestFixture::use_graphs)
             {
@@ -489,7 +500,7 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKeyValue)
         HIP_CHECK(hipStreamDestroy(stream));
 }
 
-template<bool UseGraphs = false>
+template<bool UseGraphs = false, typename config = rocprim::default_config>
 void testMergeMismatchedIteratorTypes()
 {
     const int device_id = test_common_utils::obtain_device_from_ctest();
@@ -536,16 +547,16 @@ void testMergeMismatchedIteratorTypes()
     }
 
     size_t temp_storage_size_bytes = 0;
-    HIP_CHECK(rocprim::merge(nullptr,
-                             temp_storage_size_bytes,
-                             d_keys_input1,
-                             d_keys_input2,
-                             d_keys_output,
-                             keys_input1.size(),
-                             keys_input1.size(),
-                             rocprim::less<int>{},
-                             stream,
-                             debug_synchronous));
+    HIP_CHECK(rocprim::merge<config>(nullptr,
+                                     temp_storage_size_bytes,
+                                     d_keys_input1,
+                                     d_keys_input2,
+                                     d_keys_output,
+                                     keys_input1.size(),
+                                     keys_input1.size(),
+                                     rocprim::less<int>{},
+                                     stream,
+                                     debug_synchronous));
 
     ASSERT_GT(temp_storage_size_bytes, 0);
 
@@ -558,16 +569,16 @@ void testMergeMismatchedIteratorTypes()
         gHelper.startStreamCapture(stream);
     }
 
-    HIP_CHECK(rocprim::merge(d_temp_storage,
-                             temp_storage_size_bytes,
-                             d_keys_input1,
-                             d_keys_input2,
-                             d_keys_output,
-                             keys_input1.size(),
-                             keys_input1.size(),
-                             rocprim::less<int>{},
-                             hipStreamDefault,
-                             debug_synchronous));
+    HIP_CHECK(rocprim::merge<config>(d_temp_storage,
+                                     temp_storage_size_bytes,
+                                     d_keys_input1,
+                                     d_keys_input2,
+                                     d_keys_output,
+                                     keys_input1.size(),
+                                     keys_input1.size(),
+                                     rocprim::less<int>{},
+                                     hipStreamDefault,
+                                     debug_synchronous));
 
     if(UseGraphs)
     {
@@ -595,10 +606,10 @@ void testMergeMismatchedIteratorTypes()
 
 TEST(RocprimDeviceMergeTests, MergeMismatchedIteratorTypes)
 {
-    testMergeMismatchedIteratorTypes();
+    testMergeMismatchedIteratorTypes<false, DefaultConfig>();
 }
 
 TEST(RocprimDeviceMergeTests, MergeMismatchedIteratorTypesWithGraphs)
 {
-    testMergeMismatchedIteratorTypes<true>();
+    testMergeMismatchedIteratorTypes<true, DefaultConfig>();
 }

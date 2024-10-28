@@ -1190,6 +1190,70 @@ struct search_config : public detail::search_config_params
 #endif
 };
 
+namespace detail
+{
+
+struct merge_config_params
+{
+    kernel_config_params kernel_config;
+};
+
+} // namespace detail
+
+/**
+ * \brief Configuration of device-level merge operation.
+ * 
+ * \tparam BlockSize number of threads in a block.
+ * \tparam ItemsPerThread number of items processed by each thread per tile. 
+ */
+template<unsigned int BlockSize, unsigned int ItemsPerThread>
+struct merge_config : public detail::merge_config_params
+{
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+    /// Number of threads in a block.
+    static constexpr unsigned int block_size = BlockSize;
+    /// Number of items processed by each thread per tile.
+    static constexpr unsigned int items_per_thread = ItemsPerThread;
+
+    constexpr merge_config()
+        : detail::merge_config_params{
+            {BlockSize, ItemsPerThread}
+    } {};
+
+#endif
+};
+
+namespace detail
+{
+
+template<class Key, class Value>
+struct default_merge_config_base
+{
+    static constexpr unsigned int item_scale = ::rocprim::detail::ceiling_div<unsigned int>(
+        ::rocprim::max(sizeof(Key), sizeof(Value)), sizeof(int));
+
+    using type = merge_config<limit_block_size<256u,
+                                               rocprim::max(sizeof(Key), sizeof(Value)),
+                                               ROCPRIM_WARP_SIZE_64>::value,
+                              ::rocprim::max(1u, 10u / item_scale)>;
+};
+
+template<class Key>
+struct default_merge_config_base<Key, empty_type>
+{
+    static constexpr unsigned int item_scale
+        = ::rocprim::detail::ceiling_div<unsigned int>(sizeof(Key), sizeof(int));
+
+    using type
+        = select_type<select_type_case<sizeof(Key) <= 2, merge_config<256, 11>>,
+                      select_type_case<sizeof(Key) <= 4, merge_config<256, 10>>,
+                      select_type_case<sizeof(Key) <= 8, merge_config<256, 7>>,
+                      merge_config<limit_block_size<256u, sizeof(Key), ROCPRIM_WARP_SIZE_64>::value,
+                                   ::rocprim::max(1u, 10u / item_scale)>>;
+};
+
+} // namespace detail
+
 END_ROCPRIM_NAMESPACE
 
 /// @}
