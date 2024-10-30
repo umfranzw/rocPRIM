@@ -68,6 +68,8 @@ void search_n_normal_kernel(InputIterator input,
     const size_t this_thread_start_idx
         = (block_id<0>() * items_per_block) + (items_per_thread * block_thread_id<0>());
 
+    // TODO: This could cause load imbalance among threads
+    // So maybe there is a better way to do this
     if(size < count + this_thread_start_idx)
     { // not able to find a sequence equal to or longer than count
         return;
@@ -193,13 +195,14 @@ void search_n_heads_filter_kernel(const size_t size,
 
 template<class Config, class InputIterator, class BinaryPredicate>
 ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
-void search_n_reduce_kernel(InputIterator                                                   input,
-                            const size_t                                                    size,
-                            const size_t                                                    count,
-                            const typename std::iterator_traits<InputIterator>::value_type* value,
-                            const BinaryPredicate binary_predicate,
-                            size_t* __restrict__ heads,
-                            size_t num_heads)
+void search_n_discard_heads_kernel(
+    InputIterator                                                   input,
+    const size_t                                                    size,
+    const size_t                                                    count,
+    const typename std::iterator_traits<InputIterator>::value_type* value,
+    const BinaryPredicate                                           binary_predicate,
+    size_t* __restrict__ heads,
+    size_t num_heads)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -258,7 +261,7 @@ hipError_t search_n_impl(void*          temporary_storage,
     }
 
     target_arch target_arch;
-    RETURN_ON_ERROR(host_target_arch(stream, target_arch));
+    ROCPRIM_RETURN_ON_ERROR(host_target_arch(stream, target_arch));
 
     const auto         params           = dispatch_target_arch<config>(target_arch);
     const unsigned int block_size       = params.kernel_config.block_size;
@@ -298,7 +301,7 @@ hipError_t search_n_impl(void*          temporary_storage,
         search_n_start_timer(start, debug_synchronous);
         search_n_init_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_init_kernel", 1, start);
-        // normal search_n will access each item `count` times
+        // TODO: There can be overlapping between threads, this probably can be optimized
         search_n_normal_kernel<config><<<num_blocks, block_size, 0, stream>>>(input,
                                                                               tmp_output,
                                                                               size,
@@ -312,15 +315,15 @@ hipError_t search_n_impl(void*          temporary_storage,
         // group_size is equal to `count`
         const size_t num_groups = ceiling_div(size, count /*group_size*/);
         size_t       reduce_storage_size;
-        RETURN_ON_ERROR(reduce(nullptr,
-                               reduce_storage_size,
-                               reinterpret_cast<size_t*>(0),
-                               output,
-                               size,
-                               num_groups,
-                               minimum<size_t>{},
-                               stream,
-                               debug_synchronous));
+        ROCPRIM_RETURN_ON_ERROR(reduce(nullptr,
+                                       reduce_storage_size,
+                                       reinterpret_cast<size_t*>(0),
+                                       output,
+                                       size,
+                                       num_groups,
+                                       minimum<size_t>{},
+                                       stream,
+                                       debug_synchronous));
         size_t front_size
             = std::max<size_t>(sizeof(size_t) + (sizeof(size_t) * num_groups), reduce_storage_size);
         if(tmp_output == nullptr)
@@ -363,13 +366,12 @@ hipError_t search_n_impl(void*          temporary_storage,
                                                     start);
 
         // copy filtered_heads size to the host
-        size_t h_filtered_heads_size;
+        size_t h_filtered_heads_size = 0;
         HIP_CHECK(hipMemcpyAsync(&h_filtered_heads_size,
                                  tmp_output,
                                  sizeof(size_t),
                                  hipMemcpyDeviceToHost,
                                  stream));
-
         // initialize tmp_output
         search_n_init_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_init_kernel", 1, start);
@@ -380,15 +382,15 @@ hipError_t search_n_impl(void*          temporary_storage,
             // check if the `storage_size` needed by rocprim::reduce is still the same when changed the input_size to h_filtered_heads_size
             // if rocprim::reduce the `storage_size` is always smaller while input_size is smaller, then this check can be removed
             size_t new_reduce_storage_size;
-            RETURN_ON_ERROR(reduce(nullptr,
-                                   new_reduce_storage_size,
-                                   reinterpret_cast<size_t*>(0),
-                                   output,
-                                   size,
-                                   h_filtered_heads_size, // changed this
-                                   minimum<size_t>{},
-                                   stream,
-                                   debug_synchronous));
+            ROCPRIM_RETURN_ON_ERROR(reduce(nullptr,
+                                           new_reduce_storage_size,
+                                           reinterpret_cast<size_t*>(0),
+                                           output,
+                                           size,
+                                           h_filtered_heads_size, // changed this
+                                           minimum<size_t>{},
+                                           stream,
+                                           debug_synchronous));
             if(new_reduce_storage_size > reduce_storage_size)
             { // the rocprim::reduce returns greater `storage_size` when passing `h_filtered_heads_size` than `num_group` (`h_filtered_heads_size` <= `num_group`)
                 return hipErrorInvalidValue;
@@ -398,7 +400,7 @@ hipError_t search_n_impl(void*          temporary_storage,
             const size_t num_blocks_for_reduce
                 = ceiling_div(h_filtered_heads_size * count /*group_size*/, items_per_block);
             // max access time for each item is 1
-            search_n_reduce_kernel<config>
+            search_n_discard_heads_kernel<config>
                 <<<num_blocks_for_reduce, block_size, 0, stream>>>(input,
                                                                    size,
                                                                    count,
@@ -406,24 +408,24 @@ hipError_t search_n_impl(void*          temporary_storage,
                                                                    binary_predicate,
                                                                    filtered_heads,
                                                                    h_filtered_heads_size);
-            ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_reduce_kernel",
+            ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_discard_heads_kernel ",
                                                         h_filtered_heads_size,
                                                         start);
             // calculate the minimum valid head
-            RETURN_ON_ERROR(reduce(temporary_storage,
-                                   new_reduce_storage_size,
-                                   filtered_heads,
-                                   output,
-                                   size, // original value
-                                   h_filtered_heads_size, // changed this
-                                   minimum<size_t>{},
-                                   stream,
-                                   debug_synchronous));
+            ROCPRIM_RETURN_ON_ERROR(reduce(temporary_storage,
+                                           new_reduce_storage_size,
+                                           filtered_heads,
+                                           output,
+                                           size, // original value
+                                           h_filtered_heads_size, // changed this
+                                           minimum<size_t>{},
+                                           stream,
+                                           debug_synchronous));
             return hipSuccess; // no needs to call transform, return directly
         }
     }
 
-    RETURN_ON_ERROR(
+    ROCPRIM_RETURN_ON_ERROR(
         transform(tmp_output, output, 1, identity<output_type>(), stream, debug_synchronous));
     return hipSuccess;
 }

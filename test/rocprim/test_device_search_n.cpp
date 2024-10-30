@@ -85,12 +85,6 @@ using RocprimDeviceSearchNTestsParams = ::testing::Types<
                         size_t,
                         rocprim::equal_to<rocprim::bfloat16>,
                         custom_config_0>,
-    // Tests for hipGraph support
-    DeviceSearchNParams<unsigned int,
-                        size_t,
-                        rocprim::equal_to<unsigned int>,
-                        rocprim::default_config,
-                        true>,
     // Tests for when output's value_type is void
     DeviceSearchNParams<int, size_t, rocprim::equal_to<int>, rocprim::default_config, false, true>>;
 
@@ -147,11 +141,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -162,6 +151,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
                                                 nullptr));
 
             d_temp_storage.resize(temp_storage_size);
+
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
                                                 d_input.get(),
@@ -172,21 +162,15 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
                                                 op,
                                                 stream,
                                                 debug_synchronous));
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
                   - h_input.cbegin();
             h_output = d_output.load()[0];
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -231,11 +215,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -258,10 +237,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -270,11 +247,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -319,11 +291,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -334,6 +301,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
                                                 nullptr));
 
             d_temp_storage.resize(temp_storage_size);
+
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
                                                 d_input.get(),
@@ -345,10 +313,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -357,11 +323,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -387,7 +348,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
-
+            hipGraph_t              graph;
+            hipGraphExec_t          graph_instance;
             hipStream_t             stream = 0; // default
             size_t                  count  = size / 2;
             size_t                  temp_storage_size;
@@ -405,11 +367,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -432,10 +389,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -444,11 +399,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -474,7 +424,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
-
+            hipGraph_t              graph;
+            hipGraphExec_t          graph_instance;
             hipStream_t             stream = 0; // default
             size_t                  count  = size / 2;
             size_t                  temp_storage_size;
@@ -492,11 +443,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -519,10 +465,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -531,11 +475,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -561,6 +500,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEnd)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
+
             hipStream_t stream = 0; // default
             size_t      count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
             size_t      temp_storage_size;
@@ -578,11 +518,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEnd)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -605,10 +540,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEnd)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -617,11 +550,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEnd)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -669,11 +597,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEndButFail)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -696,10 +619,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEndButFail)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -708,11 +629,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEndButFail)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -739,6 +655,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
+            hipGraph_t                   graph;
+            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -781,11 +699,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -808,10 +721,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -820,11 +731,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -851,7 +757,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-
+            hipGraph_t                   graph;
+            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -894,11 +801,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -921,10 +823,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -933,11 +833,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -964,7 +859,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-
+            hipGraph_t                   graph;
+            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -1007,11 +903,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -1034,10 +925,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -1046,11 +935,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -1077,7 +961,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-
+            hipGraph_t                   graph;
+            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -1122,11 +1007,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -1149,10 +1029,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -1161,11 +1039,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
@@ -1192,7 +1065,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-
+            hipGraph_t                   graph;
+            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -1231,11 +1105,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
             SCOPED_TRACE(testing::Message() << "with count = " << count);
             SCOPED_TRACE(testing::Message() << "with value = " << h_value);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                // Default stream does not support hipGraph stream capture, so create one
-                HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
-            }
             // get size
             HIP_CHECK(rocprim::search_n<config>(0,
                                                 temp_storage_size,
@@ -1258,10 +1127,8 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
                                                 stream,
                                                 debug_synchronous));
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamSynchronize(stream));
-            }
+            HIP_CHECK(hipGetLastError());
+            HIP_CHECK(hipStreamSynchronize(stream));
 
             const auto expected
                 = std::search_n(h_input.cbegin(), h_input.cend(), count, h_value, op)
@@ -1270,11 +1137,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
             h_output = d_output.load()[0];
 
             ASSERT_EQ(h_output, expected);
-
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
-            {
-                HIP_CHECK(hipStreamDestroy(stream));
-            }
         }
     }
 }
