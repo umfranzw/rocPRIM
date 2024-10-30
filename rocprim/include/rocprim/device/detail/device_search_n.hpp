@@ -366,6 +366,7 @@ hipError_t search_n_impl(void*          temporary_storage,
                                                     start);
 
         // copy filtered_heads size to the host
+        // TODO: this will cause the graph unsupportable
         size_t h_filtered_heads_size = 0;
         HIP_CHECK(hipMemcpyAsync(&h_filtered_heads_size,
                                  tmp_output,
