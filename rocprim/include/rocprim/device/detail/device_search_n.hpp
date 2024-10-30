@@ -202,7 +202,7 @@ void search_n_discard_heads_kernel(
     const typename std::iterator_traits<InputIterator>::value_type* value,
     const BinaryPredicate                                           binary_predicate,
     size_t* __restrict__ heads,
-    size_t num_heads)
+    size_t* num_heads)
 {
     constexpr auto params           = device_params<Config>();
     constexpr auto block_size       = params.kernel_config.block_size;
@@ -217,7 +217,7 @@ void search_n_discard_heads_kernel(
         global_idx++)
     {
         const size_t g_id /*group id*/ = global_idx / count /*group_size*/;
-        if(g_id >= num_heads)
+        if(g_id >= (*num_heads))
         {
             return;
         }
@@ -286,6 +286,9 @@ hipError_t search_n_impl(void*          temporary_storage,
         search_n_start_timer(start, debug_synchronous);
         search_n_init_kernel<<<1, 1, 0, stream>>>(tmp_output, count <= 0 ? 0 : size);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_init_kernel", 1, start);
+        ROCPRIM_RETURN_ON_ERROR(
+            transform(tmp_output, output, 1, identity<output_type>(), stream, debug_synchronous));
+        return hipSuccess;
     }
     else if(count <= params.threshold)
     { // reduce search_n will have a maximum access time of params.threshold
@@ -309,6 +312,9 @@ hipError_t search_n_impl(void*          temporary_storage,
                                                                               value,
                                                                               binary_predicate);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_normal_kernel", size, start);
+        ROCPRIM_RETURN_ON_ERROR(
+            transform(tmp_output, output, 1, identity<output_type>(), stream, debug_synchronous));
+        return hipSuccess;
     }
     else
     { // the count is greater than params.threshold
@@ -332,6 +338,8 @@ hipError_t search_n_impl(void*          temporary_storage,
             return hipSuccess;
         }
 
+        const size_t num_blocks_for_heads_filter = ceiling_div(num_groups, items_per_block);
+
         auto unfiltered_heads = reinterpret_cast<size_t*>(reinterpret_cast<char*>(temporary_storage)
                                                           + sizeof(size_t));
         auto filtered_heads
@@ -353,82 +361,47 @@ hipError_t search_n_impl(void*          temporary_storage,
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_find_heads_kernel", size, start);
 
         // filter heads
-        const size_t num_blocks_for_heads = ceiling_div(num_groups, items_per_block);
+        // move valid heads into filtered_heads, and set the size of filtered_heads to tmp_output
         search_n_heads_filter_kernel<config>
-            <<<num_blocks_for_heads, block_size, 0, stream>>>(size,
-                                                              count,
-                                                              unfiltered_heads,
-                                                              num_groups,
-                                                              filtered_heads,
-                                                              tmp_output);
+            <<<num_blocks_for_heads_filter, block_size, 0, stream>>>(size,
+                                                                     count,
+                                                                     unfiltered_heads,
+                                                                     num_groups,
+                                                                     filtered_heads,
+                                                                     tmp_output);
         ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_heads_filter_kernel",
                                                     num_groups,
                                                     start);
 
-        // copy filtered_heads size to the host
-        // TODO: this will cause the graph unsupportable
-        size_t h_filtered_heads_size = 0;
-        HIP_CHECK(hipMemcpyAsync(&h_filtered_heads_size,
-                                 tmp_output,
-                                 sizeof(size_t),
-                                 hipMemcpyDeviceToHost,
-                                 stream));
-        // initialize tmp_output
-        search_n_init_kernel<<<1, 1, 0, stream>>>(tmp_output, size);
-        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_init_kernel", 1, start);
+        // check if any valid heads make a valid sequence
+        // max access time for each item is 1
+        // TODO: num_blocks is actually graeter than the actural valid filtered_heads_size
+        // so the actural num_blocks needed is smaller than the current value
+        search_n_discard_heads_kernel<config>
+            <<<num_blocks_for_heads_filter, block_size, 0, stream>>>(
+                input,
+                size,
+                count,
+                value,
+                binary_predicate,
+                filtered_heads,
+                tmp_output); // currently the tmp_output contains the actual size of filtered_heads
+        ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_discard_heads_kernel ",
+                                                    num_groups,
+                                                    start);
 
-        // check if there are no more valid heads, otherwise will return directly
-        if(h_filtered_heads_size != 0)
-        {
-            // check if the `storage_size` needed by rocprim::reduce is still the same when changed the input_size to h_filtered_heads_size
-            // if rocprim::reduce the `storage_size` is always smaller while input_size is smaller, then this check can be removed
-            size_t new_reduce_storage_size;
-            ROCPRIM_RETURN_ON_ERROR(reduce(nullptr,
-                                           new_reduce_storage_size,
-                                           reinterpret_cast<size_t*>(0),
-                                           output,
-                                           size,
-                                           h_filtered_heads_size, // changed this
-                                           minimum<size_t>{},
-                                           stream,
-                                           debug_synchronous));
-            if(new_reduce_storage_size > reduce_storage_size)
-            { // the rocprim::reduce returns greater `storage_size` when passing `h_filtered_heads_size` than `num_group` (`h_filtered_heads_size` <= `num_group`)
-                return hipErrorInvalidValue;
-            }
-
-            // check if any valid heads make a valid sequence
-            const size_t num_blocks_for_reduce
-                = ceiling_div(h_filtered_heads_size * count /*group_size*/, items_per_block);
-            // max access time for each item is 1
-            search_n_discard_heads_kernel<config>
-                <<<num_blocks_for_reduce, block_size, 0, stream>>>(input,
-                                                                   size,
-                                                                   count,
-                                                                   value,
-                                                                   binary_predicate,
-                                                                   filtered_heads,
-                                                                   h_filtered_heads_size);
-            ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR("search_n_discard_heads_kernel ",
-                                                        h_filtered_heads_size,
-                                                        start);
-            // calculate the minimum valid head
-            ROCPRIM_RETURN_ON_ERROR(reduce(temporary_storage,
-                                           new_reduce_storage_size,
-                                           filtered_heads,
-                                           output,
-                                           size, // original value
-                                           h_filtered_heads_size, // changed this
-                                           minimum<size_t>{},
-                                           stream,
-                                           debug_synchronous));
-            return hipSuccess; // no needs to call transform, return directly
-        }
+        // calculate the minimum valid head
+        ROCPRIM_RETURN_ON_ERROR(reduce(temporary_storage,
+                                       reduce_storage_size,
+                                       filtered_heads,
+                                       output,
+                                       size, // original value
+                                       num_groups,
+                                       minimum<size_t>{},
+                                       stream,
+                                       debug_synchronous));
+        return hipSuccess; // no needs to call transform, return directly
     }
-
-    ROCPRIM_RETURN_ON_ERROR(
-        transform(tmp_output, output, 1, identity<output_type>(), stream, debug_synchronous));
-    return hipSuccess;
 }
 
 } // namespace detail

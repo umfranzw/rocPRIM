@@ -85,6 +85,12 @@ using RocprimDeviceSearchNTestsParams = ::testing::Types<
                         size_t,
                         rocprim::equal_to<rocprim::bfloat16>,
                         custom_config_0>,
+    // Tests for hipGraph support
+    DeviceSearchNParams<unsigned int,
+                        size_t,
+                        rocprim::equal_to<unsigned int>,
+                        rocprim::default_config,
+                        true>,
     // Tests for when output's value_type is void
     DeviceSearchNParams<int, size_t, rocprim::equal_to<int>, rocprim::default_config, false, true>>;
 
