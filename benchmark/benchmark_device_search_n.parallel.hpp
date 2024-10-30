@@ -196,6 +196,8 @@ private:
 
     void release() noexcept
     {
+        decltype(input) tmp;
+        input.swap(tmp); // clear input memspace
         HIP_CHECK(hipEventDestroy(start));
         HIP_CHECK(hipEventDestroy(stop));
         HIP_CHECK(hipFree(d_value));
