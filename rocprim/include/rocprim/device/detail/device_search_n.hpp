@@ -209,6 +209,18 @@ void search_n_discard_heads_kernel(
     constexpr auto items_per_thread = params.kernel_config.items_per_thread;
     constexpr auto items_per_block  = block_size * items_per_thread;
 
+    const size_t heads_size = *num_heads;
+    if(heads_size == 0)
+    {
+        return; // should return
+    }
+
+    size_t num_blocks_needed = ceiling_div(heads_size * count /*group_size*/, items_per_block);
+    if(block_id<0>() >= num_blocks_needed)
+    {
+        return;
+    }
+
     const size_t this_thread_start_idx
         = (block_id<0>() * items_per_block) + (block_thread_id<0>() * items_per_thread);
 
@@ -217,7 +229,7 @@ void search_n_discard_heads_kernel(
         global_idx++)
     {
         const size_t g_id /*group id*/ = global_idx / count /*group_size*/;
-        if(g_id >= (*num_heads))
+        if(g_id >= heads_size)
         {
             return;
         }
@@ -339,6 +351,8 @@ hipError_t search_n_impl(void*          temporary_storage,
         }
 
         const size_t num_blocks_for_heads_filter = ceiling_div(num_groups, items_per_block);
+        const size_t num_blocks_for_discard_heads
+            = ceiling_div(num_groups * count, items_per_block);
 
         auto unfiltered_heads = reinterpret_cast<size_t*>(reinterpret_cast<char*>(temporary_storage)
                                                           + sizeof(size_t));
@@ -375,10 +389,10 @@ hipError_t search_n_impl(void*          temporary_storage,
 
         // check if any valid heads make a valid sequence
         // max access time for each item is 1
-        // TODO: num_blocks is actually graeter than the actural valid filtered_heads_size
-        // so the actural num_blocks needed is smaller than the current value
+        // TODO: num_blocks_for_discard_heads is actually graeter than the actural valid filtered_heads_size
+        // so the actural num_blocks_for_discard_heads needed is smaller than the current value
         search_n_discard_heads_kernel<config>
-            <<<num_blocks_for_heads_filter, block_size, 0, stream>>>(
+            <<<num_blocks_for_discard_heads, block_size, 0, stream>>>(
                 input,
                 size,
                 count,
