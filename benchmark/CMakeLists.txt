@@ -81,9 +81,10 @@ function(add_rocprim_benchmark BENCHMARK_SOURCE)
       rocprim
       benchmark::benchmark
   )
+
   target_link_libraries(${BENCHMARK_TARGET}
     PRIVATE
-      rocprim_hip
+      $<IF:$<LINK_LANGUAGE:HIP>,hip::host,hip::device>
   )
 
   target_compile_options(${BENCHMARK_TARGET}
