@@ -79,6 +79,7 @@
 #include "device/device_scan.hpp"
 #include "device/device_scan_by_key.hpp"
 #include "device/device_search.hpp"
+#include "device/device_search_n.hpp"
 #include "device/device_segmented_radix_sort.hpp"
 #include "device/device_segmented_reduce.hpp"
 #include "device/device_segmented_scan.hpp"
