@@ -53,7 +53,10 @@ void search_n_init_kernel(SizeType* __restrict__ output, const SizeType target)
 /// \brief Supports all forms of search_n operations,
 /// but the efficiency is insufficient when `items_per_block` is too large.
 template<class Config, class InputIterator, class BinaryPredicate>
-ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
+ROCPRIM_KERNEL
+#ifndef DOXYGEN_DOCUMENTATION_BUILD
+__launch_bounds__(device_params<Config>().kernel_config.block_size)
+#endif
 void search_n_normal_kernel(InputIterator input,
                             size_t* __restrict__ output,
                             const size_t                                                    size,
@@ -103,7 +106,10 @@ void search_n_normal_kernel(InputIterator input,
 }
 
 template<class Config, class InputIterator, class BinaryPredicate>
-ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
+ROCPRIM_KERNEL
+#ifndef DOXYGEN_DOCUMENTATION_BUILD
+__launch_bounds__(device_params<Config>().kernel_config.block_size)
+#endif
 void search_n_find_heads_kernel(
     InputIterator                                                   input,
     const size_t                                                    size,
@@ -140,7 +146,10 @@ void search_n_find_heads_kernel(
 }
 
 template<class Config>
-ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
+ROCPRIM_KERNEL
+#ifndef DOXYGEN_DOCUMENTATION_BUILD
+__launch_bounds__(device_params<Config>().kernel_config.block_size)
+#endif
 void search_n_heads_filter_kernel(const size_t size,
                                   const size_t count,
                                   const size_t* __restrict__ heads,
@@ -195,7 +204,10 @@ void search_n_heads_filter_kernel(const size_t size,
 }
 
 template<class Config, class InputIterator, class BinaryPredicate>
-ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
+ROCPRIM_KERNEL
+#ifndef DOXYGEN_DOCUMENTATION_BUILD
+__launch_bounds__(device_params<Config>().kernel_config.block_size)
+#endif
 void search_n_discard_heads_kernel(
     InputIterator                                                   input,
     const size_t                                                    size,

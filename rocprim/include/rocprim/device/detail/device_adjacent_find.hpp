@@ -52,7 +52,10 @@ template<typename Config,
          typename ReduceIndexIterator,
          typename BinaryPred,
          typename OrderedTileIdType>
-ROCPRIM_KERNEL __launch_bounds__(device_params<Config>().kernel_config.block_size)
+ROCPRIM_KERNEL
+#ifndef DOXYGEN_DOCUMENTATION_BUILD
+__launch_bounds__(device_params<Config>().kernel_config.block_size)
+#endif
 void block_reduce_kernel(TransformedInputIterator transformed_input,
                          ReduceIndexIterator      reduce_output,
                          const std::size_t        size,
