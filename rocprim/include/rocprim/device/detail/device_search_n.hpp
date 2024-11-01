@@ -43,8 +43,9 @@ inline void search_n_start_timer(std::chrono::steady_clock::time_point& start,
     }
 }
 
+template<class SizeType>
 ROCPRIM_KERNEL __launch_bounds__(1)
-void search_n_init_kernel(size_t* __restrict__ output, const size_t target)
+void search_n_init_kernel(SizeType* __restrict__ output, const SizeType target)
 {
     *output = target;
 }
@@ -361,8 +362,9 @@ hipError_t search_n_impl(void*          temporary_storage,
 
         search_n_start_timer(start, debug_synchronous);
         // initialization
-        HIP_CHECK(hipMemsetAsync(tmp_output, 0, sizeof(size_t), stream));
-        HIP_CHECK(hipMemsetAsync(unfiltered_heads, -1, sizeof(size_t) * num_groups * 2, stream));
+        ROCPRIM_RETURN_ON_ERROR(hipMemsetAsync(tmp_output, 0, sizeof(size_t), stream));
+        ROCPRIM_RETURN_ON_ERROR(
+            hipMemsetAsync(unfiltered_heads, -1, sizeof(size_t) * num_groups * 2, stream));
 
         // find the thread heads of each group
         search_n_find_heads_kernel<config>
