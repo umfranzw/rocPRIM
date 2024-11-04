@@ -483,10 +483,10 @@ TYPED_TEST(RocprimDeviceSelectTests, SelectFlagged)
             void* d_temp_storage = nullptr;
             HIP_CHECK(test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size_bytes));
 
-            hipGraph_t graph;
+            test_utils::GraphHelper gHelper;
             if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             // Run
@@ -502,11 +502,9 @@ TYPED_TEST(RocprimDeviceSelectTests, SelectFlagged)
                 stream,
                 TestFixture::debug_synchronous));
 
-            hipGraphExec_t graph_instance;
             if(TestFixture::use_graphs)
             {
-                graph_instance = graph_instance
-                    = test_utils::endCaptureGraphHelper(graph, stream, true, false);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipDeviceSynchronize());
@@ -535,7 +533,7 @@ TYPED_TEST(RocprimDeviceSelectTests, SelectFlagged)
 
             if(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
             }
         }
     }
@@ -1638,10 +1636,10 @@ TEST_P(RocprimDeviceSelectLargeInputTests, LargeInputSelectOp)
         // allocate temporary storage
         HIP_CHECK(test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size_bytes));
 
-        hipGraph_t graph;
+        test_utils::GraphHelper gHelper;
         if(use_graphs)
         {
-            graph = test_utils::createGraphHelper(stream);
+            gHelper.startStreamCapture(stream);
         }
 
         // Run
@@ -1655,11 +1653,9 @@ TEST_P(RocprimDeviceSelectLargeInputTests, LargeInputSelectOp)
                                   stream,
                                   debug_synchronous));
 
-        hipGraphExec_t graph_instance;
         if(use_graphs)
         {
-            graph_instance = graph_instance
-                = test_utils::endCaptureGraphHelper(graph, stream, true, false);
+            gHelper.createAndLaunchGraph(stream);
         }
 
         HIP_CHECK(hipDeviceSynchronize());
@@ -1686,7 +1682,7 @@ TEST_P(RocprimDeviceSelectLargeInputTests, LargeInputSelectOp)
 
         if(use_graphs)
         {
-            test_utils::cleanupGraphHelper(graph, graph_instance);
+            gHelper.cleanupGraphHelper();
         }
     }
 
@@ -1771,10 +1767,10 @@ TEST_P(RocprimDeviceSelectLargeInputTests, LargeInputSelectFlagged)
         // allocate temporary storage
         HIP_CHECK(test_common_utils::hipMallocHelper(&d_temp_storage, temp_storage_size_bytes));
 
-        hipGraph_t graph;
+        test_utils::GraphHelper gHelper;
         if(use_graphs)
         {
-            graph = test_utils::createGraphHelper(stream);
+            gHelper.startStreamCapture(stream);
         }
 
         // Run
@@ -1789,11 +1785,9 @@ TEST_P(RocprimDeviceSelectLargeInputTests, LargeInputSelectFlagged)
                                   stream,
                                   debug_synchronous));
 
-        hipGraphExec_t graph_instance;
         if(use_graphs)
         {
-            graph_instance = graph_instance
-                = test_utils::endCaptureGraphHelper(graph, stream, true, false);
+            gHelper.createAndLaunchGraph(stream);
         }
 
         HIP_CHECK(hipDeviceSynchronize());
@@ -1820,7 +1814,7 @@ TEST_P(RocprimDeviceSelectLargeInputTests, LargeInputSelectFlagged)
 
         if(use_graphs)
         {
-            test_utils::cleanupGraphHelper(graph, graph_instance);
+            gHelper.cleanupGraphHelper();
         }
     }
 

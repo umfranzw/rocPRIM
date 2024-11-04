@@ -186,10 +186,10 @@ TYPED_TEST(RocprimDeviceAdjacentFindTests, AdjacentFind)
             ASSERT_GT(tmp_storage_size, 0);
             HIP_CHECK(test_common_utils::hipMallocHelper(&d_tmp_storage, tmp_storage_size));
 
-            hipGraph_t graph;
+            test_utils::GraphHelper gHelper;
             if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             // Run
@@ -202,10 +202,9 @@ TYPED_TEST(RocprimDeviceAdjacentFindTests, AdjacentFind)
                                                        stream,
                                                        debug_synchronous));
 
-            hipGraphExec_t graph_instance;
             if(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -230,7 +229,7 @@ TYPED_TEST(RocprimDeviceAdjacentFindTests, AdjacentFind)
 
             if(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }

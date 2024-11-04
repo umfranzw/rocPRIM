@@ -117,8 +117,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
-            hipGraph_t     graph;
-            hipGraphExec_t graph_instance;
             hipStream_t    stream = 0; // default
             size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
             size_t         temp_storage_size;
@@ -164,9 +162,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -182,7 +181,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -196,7 +195,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -224,8 +223,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
-            hipGraph_t     graph;
-            hipGraphExec_t graph_instance;
             hipStream_t    stream = 0; // default
             size_t         count  = size;
             size_t         temp_storage_size;
@@ -260,9 +257,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -278,7 +276,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -294,7 +292,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -322,8 +320,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
-            hipGraph_t     graph;
-            hipGraphExec_t graph_instance;
             hipStream_t    stream = 0; // default
             size_t         count  = 0;
             size_t         temp_storage_size;
@@ -358,9 +354,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
@@ -375,7 +372,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -391,7 +388,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -419,8 +416,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
-            hipGraph_t              graph;
-            hipGraphExec_t          graph_instance;
             hipStream_t             stream = 0; // default
             size_t                  count  = size / 2;
             size_t                  temp_storage_size;
@@ -454,9 +449,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -472,7 +468,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -488,7 +484,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -516,8 +512,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
-            hipGraph_t              graph;
-            hipGraphExec_t          graph_instance;
             hipStream_t             stream = 0; // default
             size_t                  count  = size / 2;
             size_t                  temp_storage_size;
@@ -551,9 +545,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -569,7 +564,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -585,7 +580,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -613,8 +608,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEnd)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
-            hipGraph_t     graph;
-            hipGraphExec_t graph_instance;
             hipStream_t    stream = 0; // default
             size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
             size_t         temp_storage_size;
@@ -648,9 +641,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEnd)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -666,7 +660,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEnd)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -682,7 +676,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEnd)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -710,8 +704,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEndButFail)
 
         for(const auto size : test_utils::get_sizes(seed_value))
         {
-            hipGraph_t     graph;
-            hipGraphExec_t graph_instance;
             hipStream_t    stream = 0; // default
             size_t         count  = test_utils::get_random_value<size_t>(0, size, ++seed_value);
             size_t         temp_storage_size;
@@ -749,9 +741,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEndButFail)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -767,7 +760,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEndButFail)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -783,7 +776,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEndButFail)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -812,8 +805,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -872,9 +863,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -890,7 +882,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -906,7 +898,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -935,8 +927,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -995,9 +985,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -1013,7 +1004,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -1029,7 +1020,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -1058,8 +1049,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -1118,9 +1107,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -1136,7 +1126,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -1152,7 +1142,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -1181,8 +1171,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -1243,9 +1231,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -1261,7 +1250,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -1277,7 +1266,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
@@ -1306,8 +1295,6 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
         for(const auto size : test_utils::get_sizes(seed_value))
         {
             using wrapped_config = rocprim::detail::wrapped_search_n_config<config, input_type>;
-            hipGraph_t                   graph;
-            hipGraphExec_t               graph_instance;
             size_t                       temp_storage_size;
             hipStream_t                  stream = 0; // default
             rocprim::detail::target_arch target_arch;
@@ -1362,9 +1349,10 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
 
             d_temp_storage.resize(temp_storage_size);
 
-            if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
+            test_utils::GraphHelper gHelper;
+            if(TestFixture::use_graphs)
             {
-                graph = test_utils::createGraphHelper(stream);
+                gHelper.startStreamCapture(stream);
             }
 
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
@@ -1380,7 +1368,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                graph_instance = test_utils::endCaptureGraphHelper(graph, stream, true, true);
+                gHelper.createAndLaunchGraph(stream);
             }
 
             HIP_CHECK(hipGetLastError());
@@ -1396,7 +1384,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
 
             if ROCPRIM_IF_CONSTEXPR(TestFixture::use_graphs)
             {
-                test_utils::cleanupGraphHelper(graph, graph_instance);
+                gHelper.cleanupGraphHelper();
                 HIP_CHECK(hipStreamDestroy(stream));
             }
         }
