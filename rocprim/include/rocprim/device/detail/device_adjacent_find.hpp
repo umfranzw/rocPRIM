@@ -32,26 +32,29 @@ BEGIN_ROCPRIM_NAMESPACE
 
 namespace detail
 {
-namespace adjacent_find
-{
-template<class OutputT, class IdT>
-ROCPRIM_KERNEL __launch_bounds__(1)
-void init_adjacent_find(OutputT*              reduce_output,
-                        ordered_block_id<IdT> ordered_tile_id,
-                        const size_t          size)
-{
-    // Reset output value.
-    *reduce_output = size;
-
-    // Reset ordered_block_id.
-    ordered_tile_id.reset();
-}
 
 template<typename Config,
          typename TransformedInputIterator,
          typename ReduceIndexIterator,
          typename BinaryPred,
          typename OrderedTileIdType>
+struct adjacent_find_impl_kernels
+{
+    template<class OutputT, class IdT>
+    static
+ROCPRIM_KERNEL __launch_bounds__(1)
+    void init_adjacent_find(OutputT*              reduce_output,
+                            ordered_block_id<IdT> ordered_tile_id,
+                            const size_t          size)
+    {
+        // Reset output value.
+        *reduce_output = size;
+
+        // Reset ordered_block_id.
+        ordered_tile_id.reset();
+    }
+
+    static
 ROCPRIM_KERNEL
 #ifndef DOXYGEN_DOCUMENTATION_BUILD
 __launch_bounds__(device_params<Config>().kernel_config.block_size)
@@ -82,7 +85,8 @@ void block_reduce_kernel(TransformedInputIterator transformed_input,
 
     // Get initial tile id
     const unsigned int thread_id = threadIdx.x;
-    std::size_t tile_offset = ordered_tile_id.get(threadIdx.x, storage.tile_id) * items_per_tile;
+    std::size_t        tile_offset
+        = ordered_tile_id.get(threadIdx.x, storage.tile_id) * items_per_tile;
 
     while(tile_offset < size)
     {
@@ -114,18 +118,19 @@ void block_reduce_kernel(TransformedInputIterator transformed_input,
             // Thread reductions with boundary check
             output_value = transformed_input_values[0];
             ROCPRIM_UNROLL
-            for(unsigned int i = 1; i < items_per_thread; i++)
-            {
-                if(thread_id + i * block_size < valid_in_last_iteration)
+                for(unsigned int i = 1; i < items_per_thread; i++)
                 {
-                    output_value = op(output_value, transformed_input_values[i]);
+                    if(thread_id + i * block_size < valid_in_last_iteration)
+                    {
+                        output_value = op(output_value, transformed_input_values[i]);
+                    }
                 }
-            }
             // Reduce thread reductions
-            block_reduce_type().reduce(output_value, // input
-                                       output_value, // output
-                                       std::min(valid_in_last_iteration, std::size_t{block_size}),
-                                       op);
+            block_reduce_type().reduce(
+                output_value, // input
+                output_value, // output
+                std::min(valid_in_last_iteration, std::size_t{block_size}),
+                op);
         }
         else /* Complete processings */
         {
@@ -147,8 +152,8 @@ void block_reduce_kernel(TransformedInputIterator transformed_input,
         // Get next tile's id
         tile_offset = ordered_tile_id.get(threadIdx.x, storage.tile_id) * items_per_tile;
     }
-}
-} // namespace adjacent_find
+};
+
 } // namespace detail
 
 END_ROCPRIM_NAMESPACE
