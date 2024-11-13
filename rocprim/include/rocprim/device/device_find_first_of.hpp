@@ -115,13 +115,13 @@ struct find_first_of_impl_kernels
                 {
                     const key_type key = keys[key_index];
                     ROCPRIM_UNROLL
-                        for(unsigned int i = 0; i < items_per_thread; ++i)
+                    for(unsigned int i = 0; i < items_per_thread; ++i)
+                    {
+                        if(compare_function(key, items[i]))
                         {
-                            if(compare_function(key, items[i]))
-                            {
-                                thread_first_index = min(thread_first_index, i);
-                            }
+                            thread_first_index = min(thread_first_index, i);
                         }
+                    }
                 }
             }
             else
@@ -129,18 +129,21 @@ struct find_first_of_impl_kernels
                 const unsigned int valid = size - block_offset;
 
                 type items[items_per_thread];
-                block_load_direct_striped<block_size>(thread_id, input + block_offset, items, valid);
+                block_load_direct_striped<block_size>(thread_id,
+                                                      input + block_offset,
+                                                      items,
+                                                      valid);
                 for(size_t key_index = 0; key_index < keys_size; ++key_index)
                 {
                     const key_type key = keys[key_index];
                     ROCPRIM_UNROLL
-                        for(unsigned int i = 0; i < items_per_thread; ++i)
+                    for(unsigned int i = 0; i < items_per_thread; ++i)
+                    {
+                        if(i * block_size + thread_id < valid && compare_function(key, items[i]))
                         {
-                            if(i * block_size + thread_id < valid && compare_function(key, items[i]))
-                            {
-                                thread_first_index = min(thread_first_index, i);
-                            }
+                            thread_first_index = min(thread_first_index, i);
                         }
+                    }
                 }
             }
 
@@ -225,6 +228,7 @@ hipError_t find_first_of_impl(void*          temporary_storage,
     {
         start = std::chrono::steady_clock::now();
     }
+
     find_first_of_kernels::init_find_first_of_kernel<<<1, 1, 0, stream>>>(tmp_output,
                                                                           size,
                                                                           ordered_bid);
