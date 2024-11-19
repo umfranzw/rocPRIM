@@ -502,7 +502,7 @@ std::vector<size_t> get_sizes(T seed_value)
     return sizes;
 }
 
-template<class T>
+template<unsigned int MaxPow2 = 37, class T>
 std::vector<size_t> get_large_sizes(T seed_value)
 {
     std::vector<size_t> sizes = {
@@ -512,12 +512,12 @@ std::vector<size_t> get_large_sizes(T seed_value)
         (size_t{1} << 33) + (size_t{1} << 32) - 876543,
         (size_t{1} << 34) - 12346,
         (size_t{1} << 35) + 1,
-        (size_t{1} << 37) - 1,
+        (size_t{1} << MaxPow2) - 1,
     };
     const std::vector<size_t> random_sizes
         = test_utils::get_random_data<size_t>(2,
                                               (size_t{1} << 30) + 1,
-                                              (size_t{1} << 37) - 2,
+                                              (size_t{1} << MaxPow2) - 2,
                                               seed_value);
     sizes.insert(sizes.end(), random_sizes.begin(), random_sizes.end());
     std::sort(sizes.begin(), sizes.end());
