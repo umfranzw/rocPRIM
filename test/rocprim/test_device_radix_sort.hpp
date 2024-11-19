@@ -1407,7 +1407,7 @@ inline void sort_keys_large_sizes()
 
     // Currently, CI enforces a hard limit of 96 GB on memory allocations.
     // Temporarily use sizes that will require less space than the limit.
-    const std::vector<size_t> sizes = test_utils::get_large_sizes<36>(seeds[0]);
+    const std::vector<size_t> sizes = test_utils::get_large_sizes<35>(seeds[0]);
     for(const size_t size : sizes)
     {
         SCOPED_TRACE(testing::Message() << "with size = " << size);
