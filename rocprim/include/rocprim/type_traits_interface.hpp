@@ -31,9 +31,6 @@
 #ifndef ROCPRIM_DO_NOT_COMPILE_IF
     #define ROCPRIM_DO_NOT_COMPILE_IF(condition, msg) static_assert(!(condition), msg)
 #endif
-#ifndef ROCPRIM_COMPILE_ERROR
-    #define ROCPRIM_COMPILE_ERROR(msg) static_assert(false, msg)
-#endif
 /// \brief Wrapper macro for std::enable_if aims to increase code readability
 #ifndef ROCPRIM_REQUIRES
     #define ROCPRIM_REQUIRES(...) typename std::enable_if<(__VA_ARGS__)>::type* = nullptr
@@ -687,10 +684,16 @@ struct traits::define<rocprim::half>
     using float_bit_mask = traits::float_bit_mask::values<uint16_t, 0x8000, 0x7F80, 0x007F>;
 };
 
-/// \brief This is the definition of traits of `rocprim::int128_t`
-/// rocPRIM arithmetic type
-template<>
-struct traits::define<rocprim::int128_t>
+// Type traits like std::is_integral and std::is_arithmetic may be defined for 128-bit integral
+// types (__int128_t and __uint128_t) in several cases:
+//  * with libstdc++ when GNU extensions are enabled (-std=gnu++17, which is the default C++
+//    standard in clang);
+//  * always with libc++ (it is used on HIP SDK for Windows).
+
+namespace detail
+{
+
+struct define_int128_t
 {
     /// \brief Trait `is_arithmetic` for this type
     using is_arithmetic = traits::is_arithmetic::values<true>;
@@ -700,10 +703,7 @@ struct traits::define<rocprim::int128_t>
     using integral_sign = traits::integral_sign::values<traits::integral_sign::kind::signed_type>;
 };
 
-/// \brief This is the definition of traits of `rocprim::uint128_t`
-/// rocPRIM arithmetic type
-template<>
-struct traits::define<rocprim::uint128_t>
+struct define_uint128_t
 {
     /// \brief Trait `is_arithmetic` for this type
     using is_arithmetic = traits::is_arithmetic::values<true>;
@@ -712,6 +712,27 @@ struct traits::define<rocprim::uint128_t>
     /// \brief Trait `integral_sign` for this type
     using integral_sign = traits::integral_sign::values<traits::integral_sign::kind::unsigned_type>;
 };
+
+} // namespace detail
+
+/// \brief This is the definition of traits of `rocprim::int128_t`
+/// rocPRIM arithmetic type
+template<>
+struct traits::define<rocprim::int128_t>
+    : std::conditional_t<std::is_arithmetic<rocprim::int128_t>::value,
+                         traits::define<void>,
+                         detail::define_int128_t>
+{};
+
+/// \brief This is the definition of traits of `rocprim::uint128_t`
+/// rocPRIM arithmetic type
+template<>
+struct traits::define<rocprim::uint128_t>
+    : std::conditional_t<std::is_arithmetic<rocprim::uint128_t>::value,
+                         traits::define<void>,
+                         detail::define_uint128_t>
+{};
+
 /// @}
 
 /// \defgroup rocprim_type_traits_wrapper Handy wrappers for obtaining type traits
