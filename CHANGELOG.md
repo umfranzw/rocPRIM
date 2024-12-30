@@ -21,6 +21,7 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 * Added the parallel `search` and `find_end` device functions similar to `std::search` and `std::find_end`, these functions search for the first and last occurrence of the sequence respectively.
 * Added a parallel device-level function, `rocprim::search_n`, similar to the C++ Standard Library `std::search_n` algorithm.
 * Added new constructors and a `base` function, and added `constexpr` specifier to all functions in `rocprim::reverse_iterator` to improve parity with the C++17 `std::reverse_iterator`.
+* If you are using CMake 3.18+, you can now build using CMake HIP language support. This allows CMake to treat HIP as any other language (like C or CXX), removing the need to set the CXX environment variable. Instead, CMake attempts to find your HIP-aware compiler on its own. To build in this way, please set the USE\_HIPCXX option to ON (-DUSE\_HIPCXX=ON) when invoking CMake.
 
 ### Changed
 
