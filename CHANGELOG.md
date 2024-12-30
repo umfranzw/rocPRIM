@@ -31,6 +31,7 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 
 * Removed HIP-CPU support. HIP-CPU support was experimental and broken.
 * Changed the C++ version from 14 to 17. C++14 will be deprecated in the next major release.
+* You can use CMake HIP language support with CMake 3.18 and later. To use HIP language support, run `cmake` with `-DUSE_HIPCXX=ON` instead of setting the `CXX` variable to the path to a HIP-aware compiler.
 
 ### Resolved issues
 
