@@ -119,8 +119,12 @@ public:
         // Save the last item of each thread
         storage.items[flat_id] = input[ItemsPerThread - 1];
 
+        // Temporary workaround to deal with a compiler bug: count up instead of down.
+        // TODO: Restore this after the bug is addressed.
+        // ROCPRIM_UNROLL
+        // for(unsigned int i = ItemsPerThread - 1; i > 0; --i)
         ROCPRIM_UNROLL
-        for(unsigned int i = ItemsPerThread - 1; i > 0; --i)
+        for (unsigned int i = 1; i < ItemsPerThread; i++)
         {
             output[i] = detail::apply(
                 op, input[i - 1], input[i], flat_id * ItemsPerThread + i, as_flags, reversed);
