@@ -55,10 +55,12 @@ function(add_rocprim_test_internal TEST_NAME TEST_SOURCES TEST_TARGET)
       GTest::Main
   )
 
-  target_link_libraries(${TEST_TARGET}
-    PRIVATE
+  if(USE_HIPCXX)
+    target_link_libraries(${TEST_TARGET}
+      PRIVATE
       $<IF:$<LINK_LANGUAGE:HIP>,hip::host,hip::device>
-  )
+    )
+  endif()
 
   target_compile_options(${TEST_TARGET}
     PRIVATE
