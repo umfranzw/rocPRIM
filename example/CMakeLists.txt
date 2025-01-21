@@ -38,6 +38,10 @@ function(add_rocprim_example EXAMPLE_SOURCE)
       PRIVATE
       $<IF:$<LINK_LANGUAGE:HIP>,hip::host,hip::device>
     )
+  else()
+    target_link_libraries(${EXAMPLE_TARGET}
+      PRIVATE
+      hip::device)
   endif()
   set_target_properties(${EXAMPLE_TARGET}
     PROPERTIES
