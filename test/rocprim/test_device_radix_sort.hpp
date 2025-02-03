@@ -30,6 +30,7 @@
 
 // required test headers
 #include "test_seed.hpp"
+#include "test_utils_custom_float_traits_type.hpp"
 #include "test_utils_custom_float_type.hpp"
 #include "test_utils_custom_test_types.hpp"
 #include "test_utils_sort_comparator.hpp"
@@ -96,7 +97,8 @@ auto generate_key_input(KeyIter keys_input, size_t size, engine_type& rng_engine
 template<class T>
 constexpr bool is_custom_not_float_test_type
     = test_utils::is_custom_test_type<T>::value
-      && !std::is_same<test_utils::custom_float_type, T>::value;
+      && !std::is_same<test_utils::custom_float_type, T>::value
+      && !std::is_same<test_utils::custom_float_traits_type, T>::value;
 
 template<class Config, bool Descending, class Key>
 auto invoke_sort_keys(void*        d_temporary_storage,
