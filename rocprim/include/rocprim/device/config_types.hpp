@@ -173,6 +173,8 @@ enum class target_arch : unsigned int
     gfx1030 = 1030,
     gfx1100 = 1100,
     gfx1102 = 1102,
+    gfx1200 = 1200,
+    gfx1201 = 1201,
     unknown = std::numeric_limits<unsigned int>::max(),
 };
 #endif // DOXYGEN_SHOULD_SKIP_THIS
@@ -212,7 +214,9 @@ constexpr target_arch get_target_arch_from_name(const char* const arch_name, con
                                                     "gfx942",
                                                     "gfx1030",
                                                     "gfx1100",
-                                                    "gfx1102"};
+                                                    "gfx1102",
+                                                    "gfx1200",
+                                                    "gfx1201"};
     constexpr target_arch target_architectures[] = {
         target_arch::gfx803,
         target_arch::gfx900,
@@ -223,6 +227,8 @@ constexpr target_arch get_target_arch_from_name(const char* const arch_name, con
         target_arch::gfx1030,
         target_arch::gfx1100,
         target_arch::gfx1102,
+        target_arch::gfx1200,
+        target_arch::gfx1201,
     };
     static_assert(sizeof(target_names) / sizeof(target_names[0])
                       == sizeof(target_architectures) / sizeof(target_architectures[0]),
@@ -283,6 +289,10 @@ auto dispatch_target_arch(const target_arch target_arch)
             return Config::template architecture_config<target_arch::gfx1100>::params;
         case target_arch::gfx1102:
             return Config::template architecture_config<target_arch::gfx1102>::params;
+        case target_arch::gfx1200:
+            return Config::template architecture_config<target_arch::gfx1200>::params;
+        case target_arch::gfx1201:
+            return Config::template architecture_config<target_arch::gfx1201>::params;
         case target_arch::invalid:
             assert(false && "Invalid target architecture selected at runtime.");
     }
