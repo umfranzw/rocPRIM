@@ -171,6 +171,41 @@ struct default_find_first_of_config<static_cast<unsigned int>(target_arch::gfx12
 // Based on value_type = int64_t
 template<class value_type>
 struct default_find_first_of_config<
+    static_cast<unsigned int>(target_arch::gfx1201),
+    value_type,
+    std::enable_if_t<((sizeof(value_type) <= 8) && (sizeof(value_type) > 4))>>
+    : find_first_of_config<256, 6>
+{};
+
+// Based on value_type = int
+template<class value_type>
+struct default_find_first_of_config<
+    static_cast<unsigned int>(target_arch::gfx1201),
+    value_type,
+    std::enable_if_t<((sizeof(value_type) <= 4) && (sizeof(value_type) > 2))>>
+    : find_first_of_config<256, 10>
+{};
+
+// Based on value_type = short
+template<class value_type>
+struct default_find_first_of_config<
+    static_cast<unsigned int>(target_arch::gfx1201),
+    value_type,
+    std::enable_if_t<((sizeof(value_type) <= 2) && (sizeof(value_type) > 1))>>
+    : find_first_of_config<64, 8>
+{};
+
+// Based on value_type = int8_t
+template<class value_type>
+struct default_find_first_of_config<static_cast<unsigned int>(target_arch::gfx1201),
+                                    value_type,
+                                    std::enable_if_t<((sizeof(value_type) <= 1))>>
+    : find_first_of_config<128, 16>
+{};
+
+// Based on value_type = int64_t
+template<class value_type>
+struct default_find_first_of_config<
     static_cast<unsigned int>(target_arch::gfx906),
     value_type,
     std::enable_if_t<((sizeof(value_type) <= 8) && (sizeof(value_type) > 4))>>
