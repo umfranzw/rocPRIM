@@ -103,18 +103,13 @@ ROCPRIM_DEVICE __forceinline__ void AsmThreadStore(void * ptr, T val)
     ROCPRIM_ASM_THREAD_STORE(cache_modifier, llvm_cache_modifier, uint64_t, uint64_t, flat_store_dwordx2, v, wait_inst, wait_cmd); \
     ROCPRIM_ASM_THREAD_STORE(cache_modifier, llvm_cache_modifier, double, uint64_t, flat_store_dwordx2, v, wait_inst, wait_cmd);
 
-#if defined(__gfx940__) || defined(__gfx941__)
-ROCPRIM_ASM_THREAD_STORE_GROUP(store_wb, "sc0 sc1", "s_waitcnt", ""); // TODO: gfx942 validation
-ROCPRIM_ASM_THREAD_STORE_GROUP(store_cg, "sc0 sc1", "s_waitcnt", "");
-ROCPRIM_ASM_THREAD_STORE_GROUP(store_wt, "sc0 sc1", "s_waitcnt", "vmcnt");
-ROCPRIM_ASM_THREAD_STORE_GROUP(store_volatile, "sc0 sc1", "s_waitcnt", "vmcnt");
-#elif defined(__gfx942__) || defined(__gfx950__)
+#if defined(__gfx942__) || defined(__gfx950__)
 ROCPRIM_ASM_THREAD_STORE_GROUP(store_wb, "sc0", "s_waitcnt", "");
 ROCPRIM_ASM_THREAD_STORE_GROUP(store_cg, "sc0 nt", "s_waitcnt", "");
 ROCPRIM_ASM_THREAD_STORE_GROUP(store_wt, "sc0", "s_waitcnt", "vmcnt");
 ROCPRIM_ASM_THREAD_STORE_GROUP(store_volatile, "sc0", "s_waitcnt", "vmcnt");
 #elif defined(__gfx1200__) ||  defined(__gfx1201__)
-ROCPRIM_ASM_THREAD_STORE_GROUP(store_wb, "scope:SCOPE_DEV", "s_wait_storecnt_dscnt", ""); // TODO: gfx942 validation
+ROCPRIM_ASM_THREAD_STORE_GROUP(store_wb, "scope:SCOPE_DEV", "s_wait_storecnt_dscnt", "");
 ROCPRIM_ASM_THREAD_STORE_GROUP(store_cg, "th:TH_DEFAULT scope:SCOPE_DEV", "s_wait_storecnt_dscnt", "");
 ROCPRIM_ASM_THREAD_STORE_GROUP(store_wt, "scope:SCOPE_DEV", "s_wait_storecnt_dscnt", "");
 ROCPRIM_ASM_THREAD_STORE_GROUP(store_volatile, "scope:SCOPE_DEV", "s_wait_storecnt_dscnt", "");
