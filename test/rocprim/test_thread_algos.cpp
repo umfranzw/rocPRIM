@@ -84,6 +84,9 @@ TYPED_TEST(RocprimThreadOperationTests, Load)
     static constexpr uint32_t grid_size = 128;
     static constexpr uint32_t size = block_size * grid_size;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -148,6 +151,9 @@ TYPED_TEST(RocprimThreadOperationTests, Store)
     static constexpr uint32_t block_size = 256;
     static constexpr uint32_t grid_size = 128;
     static constexpr uint32_t size = block_size * grid_size;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -224,6 +230,9 @@ TYPED_TEST(RocprimThreadOperationTests, Reduction)
     static constexpr uint32_t grid_size = 128;
     static constexpr uint32_t size = block_size * grid_size * length;
     sum_op operation;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -310,6 +319,9 @@ TYPED_TEST(RocprimThreadOperationTests, Scan)
     static constexpr uint32_t grid_size = 128;
     static constexpr uint32_t size = block_size * grid_size * length;
     sum_op operation;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -417,6 +429,9 @@ void merge_path_search_test()
     static constexpr OffsetT size       = index_size * length;
 
     BinaryFunction bin_op;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

@@ -382,6 +382,9 @@ hipError_t search_impl(void*          temporary_storage,
 
     size_t* tmp_output = reinterpret_cast<size_t*>(temporary_storage);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     start_timer();
     search_kernels::set_output_kernel<<<1, 1, 0, stream>>>(tmp_output,
                                                            find_first && keys_size <= 0 ? 0 : size);

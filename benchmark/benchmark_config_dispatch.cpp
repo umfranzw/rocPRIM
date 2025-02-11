@@ -58,6 +58,9 @@ static void BM_kernel_launch(benchmark::State& state)
 {
     static constexpr hipStream_t stream = 0;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(auto _ : state)
     {
         hipLaunchKernelGGL(empty_kernel, dim3(1), dim3(1), 0, stream);

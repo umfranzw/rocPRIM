@@ -77,6 +77,9 @@ TYPED_TEST(RocprimConstantIteratorTests, Transform)
 
     hipStream_t stream = 0; // default
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];

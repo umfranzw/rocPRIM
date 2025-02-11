@@ -168,6 +168,9 @@ struct device_adjacent_find_benchmark : public config_autotune_interface
         HIP_CHECK(hipEventCreate(&start));
         HIP_CHECK(hipEventCreate(&stop));
 
+        // Clear any previously recorded hipError.
+        (void) hipGetLastError();
+
         // Run
         for(auto _ : state)
         {

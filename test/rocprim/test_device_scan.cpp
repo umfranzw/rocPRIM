@@ -274,6 +274,9 @@ TYPED_TEST(RocprimDeviceScanTests, InclusiveScanEmptyInput)
         = rocprim::make_transform_iterator(rocprim::make_constant_iterator<T>(T(345)),
                                            [](T in) { return static_cast<acc_type>(in); });
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     // temp storage
     size_t temp_storage_size_bytes;
     void * d_temp_storage = nullptr;
@@ -354,6 +357,9 @@ TYPED_TEST(RocprimDeviceScanTests, InclusiveScan)
     int device_id = test_common_utils::obtain_device_from_ctest();
     SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
     HIP_CHECK(hipSetDevice(device_id));
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -514,6 +520,9 @@ TYPED_TEST(RocprimDeviceScanTests, ExclusiveScan)
     SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
     HIP_CHECK(hipSetDevice(device_id));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -669,6 +678,9 @@ TYPED_TEST(RocprimDeviceScanTests, InclusiveScanByKey)
     int device_id = test_common_utils::obtain_device_from_ctest();
     SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
     HIP_CHECK(hipSetDevice(device_id));
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -849,6 +861,9 @@ TYPED_TEST(RocprimDeviceScanTests, ExclusiveScanByKey)
     int device_id = test_common_utils::obtain_device_from_ctest();
     SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
     HIP_CHECK(hipSetDevice(device_id));
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -1096,6 +1111,9 @@ void testLargeIndicesInclusiveScan()
         HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -1221,6 +1239,9 @@ void testLargeIndicesExclusiveScan()
         // Default stream does not support hipGraph stream capture, so create one
         HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -1503,6 +1524,9 @@ void large_indices_scan_by_key_test(ScanByKeyFun scan_by_key_fun)
                                                              { return value / run_length; });
     const auto values_input = rocprim::counting_iterator<size_t>(0);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     size_t temp_storage_size_bytes;
     void*  d_temp_storage = nullptr;
     HIP_CHECK(scan_by_key_fun(d_temp_storage,
@@ -1678,6 +1702,9 @@ TYPED_TEST(RocprimDeviceScanFutureTests, ExclusiveScan)
     const int device_id = test_common_utils::obtain_device_from_ctest();
     SCOPED_TRACE(testing::Message() << "with device_id = " << device_id);
     HIP_CHECK(hipSetDevice(device_id));
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

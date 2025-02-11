@@ -201,6 +201,9 @@ inline hipError_t histogram_impl(void*          temporary_storage,
         max_bins = std::max(max_bins, bins[channel]);
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     std::chrono::steady_clock::time_point start;
 
     if(debug_synchronous)

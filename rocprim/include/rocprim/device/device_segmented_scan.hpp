@@ -145,6 +145,9 @@ hipError_t segmented_scan_impl(void * temporary_storage,
     if( segments == 0u )
         return hipSuccess;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     std::chrono::steady_clock::time_point start;
     if(debug_synchronous) start = std::chrono::steady_clock::now();
     hipLaunchKernelGGL(

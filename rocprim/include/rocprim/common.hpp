@@ -28,6 +28,14 @@
 
 namespace detail
 {
+// Note: in versions of HIP to date, the error reported by hipGetLastError is reset with every HIP API call.
+// This means that the function will return any error that may have occurred within the HIP API call.
+// In the future HIP versions, the error will be reset with every call to hipGetLastError. The means
+// that the function will return any error that has occurred since the last call to hipGetLastError
+// (in the current host thread).
+// As a result, to avoid unexpected results moving forward, before using this macro, the caller should ensure that
+// any previously recorded hipErrors (that may have occurred before those that are intended to be captured by the
+// call) have been cleared with a call to hipGetLastError.
 #ifndef ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR
     #define ROCPRIM_DETAIL_HIP_SYNC_AND_RETURN_ON_ERROR(name, size, start)                           \
         do                                                                                           \

@@ -274,6 +274,9 @@ inline hipError_t partition_impl(void*                       temporary_storage,
         std::cout << "items_per_block " << items_per_block << '\n';
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t i = 0, prev_processed = 0; i < number_of_launches;
         i++, prev_processed += limited_size)
     {

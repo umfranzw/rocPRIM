@@ -256,6 +256,9 @@ public:
         HIP_CHECK(hipEventCreate(&start));
         HIP_CHECK(hipEventCreate(&stop));
 
+        // Clear any previously recorded hipError.
+        (void) hipGetLastError();
+
         // Run
         for(auto _ : state)
         {

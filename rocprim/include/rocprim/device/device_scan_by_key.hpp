@@ -218,6 +218,9 @@ inline hipError_t scan_by_key_impl(void* const           temporary_storage,
         std::cout << "----------------------------------\n";
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t i = 0, offset = 0; i < number_of_launch; i++, offset += limited_size)
     {
         // limited_size is of type unsigned int, so current_size also fits in an unsigned int

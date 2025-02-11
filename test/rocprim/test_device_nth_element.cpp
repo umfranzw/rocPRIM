@@ -191,6 +191,9 @@ TYPED_TEST(RocprimDeviceNthelementTests, NthelementKey)
     // The size loop alternates between in place and not in place
     bool in_place = false;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -363,6 +366,9 @@ TEST(RocprimNthelementKeySameTests, NthelementKeySame)
     using key_type               = int;
     using compare_function       = rocprim::less<int>;
     const bool debug_synchronous = false;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     unsigned int seed_value = rand();
     for(size_t size : test_utils::get_sizes(seed_value))

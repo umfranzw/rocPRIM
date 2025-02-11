@@ -52,6 +52,9 @@ bool test_func(int block_count, int thread_count)
 {
     test_utils::device_ptr<unsigned int> d_flags(block_count);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     test_kernel<<<block_count, thread_count>>>(d_flags.get());
 
     HIP_CHECK(hipGetLastError());

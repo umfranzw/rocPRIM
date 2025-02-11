@@ -86,6 +86,9 @@ struct static_run_algo
             )
         );
 
+        // Clear any previously recorded hipError.
+        (void) hipGetLastError();
+
         // Running kernel
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(reduce_kernel<BlockSize, Algorithm, T, BinaryOp>),
@@ -158,6 +161,9 @@ struct static_run_valid
                 hipMemcpyHostToDevice
             )
         );
+
+        // Clear any previously recorded hipError.
+        (void) hipGetLastError();
 
         // Running kernel
         hipLaunchKernelGGL(
@@ -240,6 +246,9 @@ void test_block_reduce_input_arrays()
     SCOPED_TRACE(testing::Message() << "with items_per_block = " << items_per_block);
     SCOPED_TRACE(testing::Message() << "with size = " << size);
     SCOPED_TRACE(testing::Message() << "with grid_size = " << grid_size);
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

@@ -127,6 +127,9 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKey)
         HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(auto sizes : get_sizes())
     {
         if ((std::get<0>(sizes) == 0 || std::get<1>(sizes) == 0) && test_common_utils::use_hmm())
@@ -290,6 +293,9 @@ TYPED_TEST(RocprimDeviceMergeTests, MergeKeyValue)
         // Default stream does not support hipGraph stream capture, so create one
         HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(auto sizes : get_sizes())
     {

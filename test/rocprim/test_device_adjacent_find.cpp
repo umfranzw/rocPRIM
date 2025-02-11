@@ -124,6 +124,9 @@ TYPED_TEST(RocprimDeviceAdjacentFindTests, AdjacentFind)
 
     op_type op{};
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(std::size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         const unsigned int seed_value

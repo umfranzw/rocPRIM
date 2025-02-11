@@ -146,6 +146,9 @@ TYPED_TEST(RocprimLookbackReproducibilityTests, Scan)
 
     const hipStream_t stream = 0;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -229,6 +232,9 @@ TYPED_TEST(RocprimLookbackReproducibilityTests, ScanByKey)
     HIP_CHECK(hipSetDevice(device_id));
 
     const hipStream_t stream = 0;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -327,6 +333,9 @@ TYPED_TEST(RocprimLookbackReproducibilityTests, ReduceByKey)
     HIP_CHECK(hipSetDevice(device_id));
 
     const hipStream_t stream = 0;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

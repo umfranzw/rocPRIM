@@ -116,6 +116,9 @@ hipError_t adjacent_find_impl(void* const       temporary_storage,
         start = std::chrono::steady_clock::now();
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     // Launch adjacent_find_impl_kernels::init_adjacent_find
     auto ordered_tile_id = ordered_tile_id_type::create(ordered_tile_id_storage);
     adjacent_find_kernels::init_adjacent_find<<<1, 1, 0, stream>>>(reduce_output,

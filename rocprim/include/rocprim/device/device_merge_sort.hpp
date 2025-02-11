@@ -311,6 +311,9 @@ inline hipError_t merge_sort_block_merge(
     // Start point for time measurements
     std::chrono::steady_clock::time_point start;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     bool temporary_store = true;
     for(OffsetT block = sorted_block_size; block < size; block *= 2)
     {
@@ -325,6 +328,7 @@ inline hipError_t merge_sort_block_merge(
             {
                 if(debug_synchronous)
                     start = std::chrono::steady_clock::now();
+
                 hipLaunchKernelGGL(
                     HIP_KERNEL_NAME(device_block_merge_mergepath_partition_kernel<config>),
                     dim3(merge_partition_number_of_blocks),
@@ -344,6 +348,7 @@ inline hipError_t merge_sort_block_merge(
 
                 if(debug_synchronous)
                     start = std::chrono::steady_clock::now();
+
                 hipLaunchKernelGGL(HIP_KERNEL_NAME(device_block_merge_mergepath_kernel<config>),
                                    calculate_grid_dim(merge_mergepath_number_of_blocks,
                                                       merge_mergepath_block_size),
@@ -472,6 +477,9 @@ inline hipError_t merge_sort_block_sort(KeysInputIterator    keys_input,
     std::chrono::steady_clock::time_point start;
     if(debug_synchronous)
         start = std::chrono::steady_clock::now();
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(block_sort_kernel<config>),

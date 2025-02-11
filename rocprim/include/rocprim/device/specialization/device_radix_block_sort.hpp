@@ -113,6 +113,9 @@ inline hipError_t radix_sort_block_sort(KeysInputIterator    keys_input,
         start = std::chrono::steady_clock::now();
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     radix_sort_block_sort_kernel<config, Descending>
         <<<dim3(sort_number_of_blocks), dim3(params.block_size), 0, stream>>>(keys_input,
                                                                               keys_output,

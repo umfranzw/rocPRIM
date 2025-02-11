@@ -52,6 +52,8 @@ TEST(RocprimConfigDispatchTests, HostMatchesDevice)
     target_arch* device_arch_ptr;
     HIP_CHECK(hipMalloc(&device_arch_ptr, sizeof(*device_arch_ptr)));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
     hipLaunchKernelGGL(write_target_arch, dim3(1), dim3(1), 0, stream, device_arch_ptr);
     HIP_CHECK(hipGetLastError());
 

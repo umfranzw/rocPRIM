@@ -71,6 +71,9 @@ typed_test_def(RocprimWarpReduceTests, name_suffix, ReduceSum)
         GTEST_SKIP();
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -189,6 +192,9 @@ typed_test_def(RocprimWarpReduceTests, name_suffix, AllReduceSum)
             logical_warp_size, block_size, current_device_warp_size);
         GTEST_SKIP();
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -314,6 +320,9 @@ typed_test_def(RocprimWarpReduceTests, name_suffix, ReduceSumValid)
         GTEST_SKIP();
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -434,6 +443,9 @@ typed_test_def(RocprimWarpReduceTests, name_suffix, AllReduceSumValid)
             logical_warp_size, block_size, current_device_warp_size);
         GTEST_SKIP();
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -556,6 +568,9 @@ typed_test_def(RocprimWarpReduceTests, name_suffix, ReduceCustomStruct)
             logical_warp_size, block_size, current_device_warp_size);
         GTEST_SKIP();
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -688,6 +703,9 @@ typed_test_def(RocprimWarpReduceTests, name_suffix, HeadSegmentedReduceSum)
             logical_warp_size, block_size, current_device_warp_size);
         GTEST_SKIP();
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -843,6 +861,9 @@ typed_test_def(RocprimWarpReduceTests, name_suffix, TailSegmentedReduceSum)
             logical_warp_size, block_size, current_device_warp_size);
         GTEST_SKIP();
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

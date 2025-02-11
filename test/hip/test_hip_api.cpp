@@ -56,6 +56,9 @@ TEST(HIPTests, Saxpy)
     test_utils::device_ptr<float> d_x(x);
     test_utils::device_ptr<float> d_y(y);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     hipLaunchKernelGGL(HIP_KERNEL_NAME(saxpy_kernel<float>),
                        dim3((N + 255) / 256),
                        dim3(256),

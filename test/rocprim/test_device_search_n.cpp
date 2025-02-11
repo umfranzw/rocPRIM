@@ -110,6 +110,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, RandomTest)
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -216,6 +219,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, MaxCount)
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -313,6 +319,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -359,6 +368,7 @@ TYPED_TEST(RocprimDeviceSearchNTests, MinCount)
             {
                 gHelper.startStreamCapture(stream);
             }
+
             HIP_CHECK(rocprim::search_n<config>(d_temp_storage.get(),
                                                 temp_storage_size,
                                                 d_input.get(),
@@ -408,6 +418,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromBegin)
 
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -505,6 +518,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromMiddle)
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -601,6 +617,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEnd)
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -696,6 +715,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, StartFromEndButFail)
 
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -796,6 +818,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_1block)
 
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -919,6 +944,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_2block)
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -1041,6 +1069,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, NoiseTest_3block)
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -1162,6 +1193,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult1)
 
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -1286,6 +1320,9 @@ TYPED_TEST(RocprimDeviceSearchNTests, MultiResult2)
 
     constexpr bool debug_synchronous = TestFixture::debug_synchronous;
     op_type        op{};
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

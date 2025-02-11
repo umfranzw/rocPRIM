@@ -31,6 +31,9 @@ void serial_merge(std::vector<T>& input,
     HIP_CHECK(hipMalloc(&device_data, num_bytes));
     HIP_CHECK(hipMemcpy(device_data, input.data(), num_bytes, hipMemcpyHostToDevice));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     merge_kernel<IPT>
         <<<1, 1>>>(device_data, rocprim::detail::range_t<>{0, mid, mid, N}, compare_function);
     HIP_CHECK(hipGetLastError());

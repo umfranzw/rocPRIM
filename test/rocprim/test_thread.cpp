@@ -115,6 +115,9 @@ TYPED_TEST(RocprimThreadTests, FlatBlockThreadID)
         Type* device_output;
         HIP_CHECK(test_common_utils::hipMallocHelper(&device_output, block_size * sizeof(typename decltype(output)::value_type)));
 
+        // Clear any previously recorded hipError.
+        (void) hipGetLastError();
+
         // Running kernel
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(
@@ -173,6 +176,9 @@ TYPED_TEST(RocprimThreadTests, FlatBlockID)
     {
         return;
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

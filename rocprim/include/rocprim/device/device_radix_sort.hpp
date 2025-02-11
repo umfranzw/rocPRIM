@@ -168,6 +168,9 @@ hipError_t radix_sort_onesweep_global_offsets(KeysInputIterator keys_input,
         start = std::chrono::steady_clock::now();
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     // Compute a histogram for each digit.
     hipLaunchKernelGGL(HIP_KERNEL_NAME(onesweep_histograms_kernel<config, Descending>),
                        dim3(blocks),
@@ -293,6 +296,9 @@ hipError_t radix_sort_onesweep_iteration(
     const unsigned int batches = ceiling_div(size, items_per_full_batch);
     const unsigned int items_per_batch
         = static_cast<unsigned int>(::rocprim::min<size_t>(size, items_per_full_batch));
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(Offset batch = 0; batch < batches; ++batch)
     {

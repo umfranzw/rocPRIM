@@ -397,6 +397,9 @@ auto test_block_adjacent_difference()
         return;
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -519,6 +522,9 @@ auto test_block_adjacent_difference()
         return;
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -640,6 +646,9 @@ auto test_block_adjacent_difference()
     {
         return;
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -780,6 +789,9 @@ auto test_block_adjacent_difference() -> typename std::enable_if<Method == 3>::t
         return;
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         const unsigned int seed_value
@@ -875,6 +887,9 @@ auto test_block_adjacent_difference() -> typename std::enable_if<Method == 4>::t
         return;
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         const unsigned int seed_value
@@ -969,6 +984,9 @@ auto test_block_adjacent_difference() -> typename std::enable_if<Method == 5>::t
     {
         return;
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -1082,6 +1100,9 @@ auto test_block_adjacent_difference() -> typename std::enable_if<Method == 6>::t
     {
         return;
     }
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

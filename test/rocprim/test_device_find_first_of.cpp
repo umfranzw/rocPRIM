@@ -147,6 +147,9 @@ TYPED_TEST(RocprimDeviceFindFirstOfTests, FindFirstOf)
     constexpr bool debug_synchronous     = TestFixture::debug_synchronous;
     constexpr bool use_indirect_iterator = TestFixture::use_indirect_iterator;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -321,6 +324,9 @@ TEST(RocprimDeviceFindFirstOfTests, LargeIndices)
     using config      = rocprim::default_config;
 
     constexpr bool debug_synchronous = false;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t size : test_utils::get_large_sizes(seeds[0]))
     {

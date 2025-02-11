@@ -189,6 +189,9 @@ auto test_block_radix_sort() -> typename std::enable_if<Method == 0>::type
     SCOPED_TRACE(testing::Message() << "with size = " << size);
     SCOPED_TRACE(testing::Message() << "with grid_size = " << grid_size);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -287,6 +290,9 @@ auto test_block_radix_sort() -> typename std::enable_if<Method == 1>::type
     SCOPED_TRACE(testing::Message() << "with items_per_block = " << items_per_block);
     SCOPED_TRACE(testing::Message() << "with size = " << size);
     SCOPED_TRACE(testing::Message() << "with grid_size = " << grid_size);
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

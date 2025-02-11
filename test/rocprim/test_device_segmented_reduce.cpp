@@ -339,6 +339,9 @@ void testLargeIndices()
         HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(auto size : test_utils::get_large_sizes(42))
     {
         SCOPED_TRACE(testing::Message() << "with size = " << size);

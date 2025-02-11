@@ -245,6 +245,9 @@ TYPED_TEST(RocprimDeviceReduceTests, ReduceSum)
     static constexpr bool use_identity_iterator = TestFixture::use_identity_iterator;
     using Config = size_limit_config_t<TestFixture::size_limit>;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -399,6 +402,9 @@ TYPED_TEST(RocprimDeviceReduceTests, ReduceArgMinimum)
     static constexpr bool use_identity_iterator = TestFixture::use_identity_iterator;
     using Config = size_limit_config_t<TestFixture::size_limit>;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -537,6 +543,9 @@ void testLargeIndices()
         HIP_CHECK(hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -643,6 +652,9 @@ TYPED_TEST(RocprimDeviceReducePrecisionTests, ReduceSumInputEqualExponentFunctio
     const bool            debug_synchronous     = TestFixture::debug_synchronous;
     static constexpr bool use_identity_iterator = TestFixture::use_identity_iterator;
     using Config                                = size_limit_config_t<TestFixture::size_limit>;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(auto size : test_utils::get_sizes(42))
     {

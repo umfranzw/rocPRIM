@@ -178,6 +178,9 @@ hipError_t adjacent_difference_impl(void* const          temporary_storage,
         std::cout << "----------------------------------\n";
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(std::size_t i = 0, offset = 0; i < number_of_launch; ++i, offset += aligned_size_limit)
     {
         const auto current_size

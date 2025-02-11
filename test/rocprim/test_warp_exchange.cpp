@@ -331,6 +331,8 @@ TYPED_TEST(WarpExchangeTest, WarpExchange)
     HIP_CHECK(hipMalloc(&d_output, items_count * sizeof(T)));
     HIP_CHECK(hipMemset(d_output, 0, items_count * sizeof(T)));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
     warp_exchange_kernel<items_per_thread, warp_size, exchange_op>
         <<<dim3(1), dim3(block_size), 0, 0>>>(d_input, d_output);
     HIP_CHECK(hipGetLastError());
@@ -384,6 +386,8 @@ TYPED_TEST(WarpExchangeTest, WarpExchangeNotInplace)
     HIP_CHECK(hipMalloc(&d_output, items_count * sizeof(T)));
     HIP_CHECK(hipMemset(d_output, 0, items_count * sizeof(T)));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
     warp_exchange_kernel<items_per_thread, warp_size, exchange_op>
         <<<dim3(1), dim3(block_size), 0, 0>>>(d_input, d_output, false);
     HIP_CHECK(hipGetLastError());
@@ -499,6 +503,8 @@ TYPED_TEST(WarpExchangeScatterTest, WarpExchangeScatter)
     HIP_CHECK(hipMalloc(&d_ranks, items_count * sizeof(OffsetT)));
     HIP_CHECK(hipMemcpy(d_ranks, ranks.data(), items_count * sizeof(OffsetT), hipMemcpyHostToDevice));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
     warp_exchange_scatter_kernel<items_per_thread, warp_size>
         <<<dim3(1), dim3(block_size), 0, 0>>>(d_input, d_output, d_ranks);
     HIP_CHECK(hipGetLastError());

@@ -1186,6 +1186,9 @@ ROCPRIM_INLINE static hipError_t batch_memcpy_func(void*              temporary_
         return error;
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     // Launch init_scan_states_kernel.
     batch_memcpy_impl_type::
         init_tile_state_kernel<<<init_kernel_grid_size, init_kernel_threads, 0, stream>>>(

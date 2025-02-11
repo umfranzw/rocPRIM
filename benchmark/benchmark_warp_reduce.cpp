@@ -186,6 +186,9 @@ void run_benchmark(benchmark::State& state, size_t bytes, const managed_seed& se
     HIP_CHECK(hipEventCreate(&start));
     HIP_CHECK(hipEventCreate(&stop));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(auto _ : state)
     {
         // Record start event

@@ -309,6 +309,9 @@ void test_shuffle()
     T* d_data;
     HIP_CHECK(test_common_utils::hipMallocHelper(&d_data, size * sizeof(T)));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -413,6 +416,9 @@ TYPED_TEST(RocprimIntrinsicsTests, ShuffleIndex)
     unsigned int hardware_warp_size;
     HIP_CHECK(::rocprim::host_warp_size(device_id, hardware_warp_size));
     const size_t size = hardware_warp_size;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -530,6 +536,9 @@ TEST(RocprimIntrinsicsTests, LaneId)
     unsigned int* d_output;
     HIP_CHECK(test_common_utils::hipMallocHelper(&d_output, size * sizeof(unsigned int)));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     hipLaunchKernelGGL(lane_id_kernel,
                        dim3(blocks),
                        dim3(block_size),
@@ -599,6 +608,9 @@ TEST(RocprimIntrinsicsTests, MaskedBitCount)
 
     std::vector<unsigned int> expected(out_size);
     std::vector<unsigned int> output(out_size);
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -723,6 +735,9 @@ void warp_any_all_test()
 
     unsigned int* d_output;
     HIP_CHECK(test_common_utils::hipMallocHelper(&d_output, out_size * sizeof(unsigned int)));
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     std::vector<unsigned int> output(out_size);
     std::vector<unsigned int> expected(out_size);
@@ -885,6 +900,9 @@ TYPED_TEST(RocprimIntrinsicsTests, WarpPermute)
     std::vector<T>            expected(size);
     std::vector<unsigned int> indices(size);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -993,6 +1011,9 @@ TEST(RocprimIntrinsicsTests, MatchAny)
 
     std::vector<max_lane_mask_type> expected(size);
     std::vector<max_lane_mask_type> output(size);
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -1114,6 +1135,9 @@ TEST(RocprimIntrinsicsTests, Ballot)
     std::vector<max_lane_mask_type> expected(size);
     std::vector<max_lane_mask_type> output(size);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value
@@ -1213,6 +1237,9 @@ TEST(RocprimIntrinsicsTests, GroupElect)
 
     std::vector<max_lane_mask_type> output;
     output.reserve(number_of_warps);
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

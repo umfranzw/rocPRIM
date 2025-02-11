@@ -172,6 +172,9 @@ hipError_t merge_impl(void * temporary_storage,
 
     const unsigned partition_blocks = ((partitions + 1) + half_block - 1) / half_block;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     if(debug_synchronous) start = std::chrono::steady_clock::now();
     hipLaunchKernelGGL(HIP_KERNEL_NAME(detail::partition_kernel<config>),
                        dim3(partition_blocks),

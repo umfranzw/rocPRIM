@@ -149,6 +149,9 @@ protected:
 
 TEST_F(HipAsyncCopyTests, AsyncCopyDepthFirst)
 {
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t i = 0; i < sizes.size(); i++)
     {
         const auto size_bytes = sizes[i] * sizeof(T);
@@ -173,6 +176,9 @@ TEST_F(HipAsyncCopyTests, AsyncCopyDepthFirst)
 
 TEST_F(HipAsyncCopyTests, AsyncCopyBreadthFirst)
 {
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t i = 0; i < sizes.size(); i++)
     {
         const auto size_bytes = sizes[i] * sizeof(T);
@@ -229,6 +235,9 @@ TEST(HipAsyncCopyTestsExtra, StreamInStruct)
     const auto size_bytes = size * sizeof(T);
     HIP_CHECK(hipMallocHelper(&d_input, size_bytes));
     HIP_CHECK(hipMemcpyAsync(d_input, input.data(), size_bytes, hipMemcpyHostToDevice, stream_wrapper.stream));
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     const unsigned int grid_size = (size + block_size - 1) / block_size;
     hipLaunchKernelGGL(

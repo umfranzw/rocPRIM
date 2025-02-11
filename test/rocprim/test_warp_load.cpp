@@ -250,6 +250,8 @@ TYPED_TEST(WarpLoadTest, WarpLoad)
     T* d_output{};
     HIP_CHECK(hipMalloc(&d_output, items_count * sizeof(T)));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
     warp_load_kernel<block_size, items_per_thread, warp_size, method>
         <<<dim3(1), dim3(block_size), 0, 0>>>(d_input, d_output);
     HIP_CHECK(hipGetLastError());
@@ -294,6 +296,8 @@ TYPED_TEST(WarpLoadTest, WarpLoadGuarded)
     T* d_output{};
     HIP_CHECK(hipMalloc(&d_output, items_count * sizeof(T)));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
     warp_load_guarded_kernel<block_size, items_per_thread, warp_size, method>
         <<<dim3(1), dim3(block_size), 0, 0>>>(d_input, d_output, valid_items, oob_default);
     HIP_CHECK(hipGetLastError());

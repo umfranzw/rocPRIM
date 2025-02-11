@@ -114,6 +114,9 @@ hipError_t segmented_reduce_impl(void * temporary_storage,
 
     std::chrono::steady_clock::time_point start;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     if(debug_synchronous) start = std::chrono::steady_clock::now();
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(segmented_reduce_kernel<config>),

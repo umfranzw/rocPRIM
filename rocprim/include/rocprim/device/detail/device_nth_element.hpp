@@ -645,6 +645,9 @@ ROCPRIM_INLINE hipError_t
         }
     };
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     while(size >= stop_recursion_size)
     {
         const unsigned int num_blocks = ceiling_div(size, num_items_per_block);

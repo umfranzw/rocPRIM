@@ -236,6 +236,9 @@ auto test_block_exchange(int /*device_id*/) -> typename std::enable_if<Method ==
         )
     );
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     // Running kernel
     constexpr unsigned int grid_size = (size / items_per_block);
     hipLaunchKernelGGL(
@@ -324,6 +327,9 @@ auto test_block_exchange(int /*device_id*/) -> typename std::enable_if<Method ==
             hipMemcpyHostToDevice
         )
     );
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     // Running kernel
     constexpr unsigned int grid_size = (size / items_per_block);
@@ -426,6 +432,9 @@ auto test_block_exchange(int device_id) -> typename std::enable_if<Method == 2>:
             hipMemcpyHostToDevice
         )
     );
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     // Running kernel
     constexpr unsigned int grid_size = (size / items_per_block);
@@ -530,6 +539,9 @@ auto test_block_exchange(int device_id) -> typename std::enable_if<Method == 3>:
             hipMemcpyHostToDevice
         )
     );
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     // Running kernel
     constexpr unsigned int grid_size = (size / items_per_block);
@@ -637,6 +649,9 @@ auto test_block_exchange(int /*device_id*/) -> typename std::enable_if<Method ==
             hipMemcpyHostToDevice
         )
     );
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     // Running kernel
     constexpr unsigned int grid_size = (size / items_per_block);
@@ -747,6 +762,9 @@ auto test_block_exchange(int /*device_id*/) -> typename std::enable_if<Method ==
             hipMemcpyHostToDevice
         )
     );
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     // Running kernel
     constexpr unsigned int grid_size = (size / items_per_block);

@@ -238,6 +238,8 @@ TYPED_TEST(WarpStoreTest, WarpLoad)
     T* d_output{};
     HIP_CHECK(hipMalloc(&d_output, items_count * sizeof(T)));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
     warp_store_kernel<block_size, items_per_thread, warp_size, method>
         <<<dim3(1), dim3(block_size), 0, 0>>>(d_input, d_output);
     HIP_CHECK(hipGetLastError());
@@ -281,6 +283,8 @@ TYPED_TEST(WarpStoreTest, WarpStoreGuarded)
     HIP_CHECK(hipMalloc(&d_output, items_count * sizeof(T)));
     HIP_CHECK(hipMemset(d_output, 0, items_count * sizeof(T)));
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
     warp_store_guarded_kernel<block_size, items_per_thread, warp_size, method>
         <<<dim3(1), dim3(block_size), 0, 0>>>(d_input, d_output, valid_items);
     HIP_CHECK(hipGetLastError());

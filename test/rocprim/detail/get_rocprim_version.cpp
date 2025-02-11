@@ -39,6 +39,9 @@ unsigned int get_rocprim_version_on_device()
     HIP_CHECK(hipMalloc(reinterpret_cast<void**>(&d_version), sizeof(unsigned int)));
     HIP_CHECK(hipDeviceSynchronize());
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     hipLaunchKernelGGL(
         get_version_kernel,
         dim3(1), dim3(1), 0, 0,

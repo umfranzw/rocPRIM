@@ -489,6 +489,10 @@ hipError_t segmented_radix_sort_impl(void * temporary_storage,
             std::cout << "medium_segment_count " << medium_segment_count << '\n';
             std::cout << "small_segment_count " << small_segment_count << '\n';
         }
+
+        // Clear any previously recorded hipError.
+        (void) hipGetLastError();
+
         if(large_segment_count > 0)
         {
             std::chrono::steady_clock::time_point start;

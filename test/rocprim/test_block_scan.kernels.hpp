@@ -200,6 +200,9 @@ struct static_run_algo
             )
         );
 
+        // Clear any previously recorded hipError.
+        (void) hipGetLastError();
+
         // Running kernel
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(scan_kernel<Method, BlockSize, Algorithm, T>),
@@ -488,6 +491,9 @@ auto test_block_scan_input_arrays()
     SCOPED_TRACE(testing::Message() << "with size = " << size);
     SCOPED_TRACE(testing::Message() << "with grid_size = " << grid_size);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -575,6 +581,9 @@ auto test_block_scan_input_arrays()
     SCOPED_TRACE(testing::Message() << "with items_per_block = " << items_per_block);
     SCOPED_TRACE(testing::Message() << "with size = " << size);
     SCOPED_TRACE(testing::Message() << "with grid_size = " << grid_size);
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -694,6 +703,9 @@ auto test_block_scan_input_arrays()
     SCOPED_TRACE(testing::Message() << "with items_per_block = " << items_per_block);
     SCOPED_TRACE(testing::Message() << "with size = " << size);
     SCOPED_TRACE(testing::Message() << "with grid_size = " << grid_size);
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -816,6 +828,9 @@ auto test_block_scan_input_arrays()
     SCOPED_TRACE(testing::Message() << "with size = " << size);
     SCOPED_TRACE(testing::Message() << "with grid_size = " << grid_size);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -906,6 +921,9 @@ auto test_block_scan_input_arrays()
     SCOPED_TRACE(testing::Message() << "with items_per_block = " << items_per_block);
     SCOPED_TRACE(testing::Message() << "with size = " << size);
     SCOPED_TRACE(testing::Message() << "with grid_size = " << grid_size);
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -1024,6 +1042,9 @@ auto test_block_scan_input_arrays()
     SCOPED_TRACE(testing::Message() << "with items_per_block = " << items_per_block);
     SCOPED_TRACE(testing::Message() << "with size = " << size);
     SCOPED_TRACE(testing::Message() << "with grid_size = " << grid_size);
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

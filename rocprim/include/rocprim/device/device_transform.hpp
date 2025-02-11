@@ -161,6 +161,9 @@ inline hipError_t transform(InputIterator     input,
 
     const auto aligned_size_limit = number_of_blocks_limit * items_per_block;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     // Launch number_of_blocks_limit blocks while there is still at least as many blocks left as the limit
     const auto number_of_launch = (size + aligned_size_limit - 1) / aligned_size_limit;
     for(size_t i = 0, offset = 0; i < number_of_launch; ++i, offset += aligned_size_limit) {

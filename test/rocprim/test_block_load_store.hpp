@@ -60,6 +60,9 @@ typed_test_def(suite_name, name_suffix, LoadStoreClass)
         return;
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -158,6 +161,9 @@ typed_test_def(suite_name, name_suffix, LoadStoreClassValid)
     }
 
     const size_t valid = items_per_block - 32;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
@@ -270,6 +276,9 @@ typed_test_def(suite_name, name_suffix, LoadStoreClassDefault)
 
     const size_t valid = items_per_thread + 1;
     Type _default = (Type)-1;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
 
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {

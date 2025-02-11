@@ -183,6 +183,9 @@ hipError_t reduce_impl(void * temporary_storage,
         std::cout << "items_per_block " << items_per_block << '\n';
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     // We increase the items per thread with a maximum of 16.
     // This means if the number_of_blocks is larger than 16 it
     // will not fit in one kernel.

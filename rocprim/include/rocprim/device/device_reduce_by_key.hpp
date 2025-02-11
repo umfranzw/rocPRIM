@@ -292,6 +292,9 @@ hipError_t reduce_by_key_impl(void*                     temporary_storage,
         std::cout << "items_per_tile:     " << items_per_tile << '\n';
     }
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for(size_t i = 0, offset = 0; i < number_of_launch; i++, offset += limited_size)
     {
         const std::size_t current_size = std::min<std::size_t>(size - offset, limited_size);

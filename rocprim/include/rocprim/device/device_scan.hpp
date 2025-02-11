@@ -241,6 +241,9 @@ inline auto scan_impl(void*               temporary_storage,
     if( number_of_blocks == 0u )
         return hipSuccess;
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     if(number_of_blocks > 1 || use_limited_size)
     {
         bool use_sleep;

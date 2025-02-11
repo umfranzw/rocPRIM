@@ -339,6 +339,9 @@ hipError_t run_length_encode_non_trivial_runs(void * temporary_storage,
     ptr += counts_tmp_bytes;
     all_runs_count_tmp = reinterpret_cast<count_type *>(ptr);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     std::chrono::steady_clock::time_point start;
 
     if(debug_synchronous) start = std::chrono::steady_clock::now();

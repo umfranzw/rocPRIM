@@ -34,6 +34,10 @@ typed_test_def(suite_name, name_suffix, BlockOffset)
     static constexpr size_t block_size = TestFixture::block_size;
     static constexpr size_t size = block_size * 11;
     static constexpr size_t grid_size = size / block_size;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -106,6 +110,10 @@ typed_test_def(suite_name, name_suffix, BlockRotate)
     static constexpr size_t block_size = TestFixture::block_size;
     static constexpr size_t size = block_size * 11;
     static constexpr size_t grid_size = size / block_size;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -178,6 +186,10 @@ typed_test_def(suite_name, name_suffix, BlockUp)
     static constexpr size_t size = block_size * 11;
     static constexpr size_t grid_size = size / block_size;
     static constexpr unsigned int ItemsPerThread = 128;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -206,7 +218,6 @@ typed_test_def(suite_name, name_suffix, BlockUp)
                 hipMemcpyHostToDevice
             )
         );
-
 
         // Running kernel
         hipLaunchKernelGGL(
@@ -259,6 +270,10 @@ typed_test_def(suite_name, name_suffix, BlockDown)
     static constexpr size_t size = block_size * 11;
     static constexpr size_t grid_size = size / block_size;
     static constexpr unsigned int ItemsPerThread = 128;
+
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     for (size_t seed_index = 0; seed_index < random_seeds_count + seed_size; seed_index++)
     {
         unsigned int seed_value = seed_index < random_seeds_count  ? rand() : seeds[seed_index - random_seeds_count];
@@ -288,7 +303,6 @@ typed_test_def(suite_name, name_suffix, BlockDown)
                 hipMemcpyHostToDevice
             )
         );
-
 
         // Running kernel
         hipLaunchKernelGGL(

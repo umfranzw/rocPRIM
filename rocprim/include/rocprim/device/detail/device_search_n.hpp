@@ -301,6 +301,9 @@ hipError_t search_n_impl(void*          temporary_storage,
 
     size_t* tmp_output = reinterpret_cast<size_t*>(temporary_storage);
 
+    // Clear any previously recorded hipError.
+    (void) hipGetLastError();
+
     if(size == 0 || count <= 0)
     { // to be consist to the std::search_n
         // calculate size
