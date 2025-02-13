@@ -350,7 +350,15 @@ inline hipError_t get_device_arch(int device_id, target_arch& arch)
 inline hipError_t get_device_from_stream(const hipStream_t stream, int& device_id)
 {
     static constexpr hipStream_t default_stream = 0;
-    if(stream == default_stream || stream == hipStreamPerThread || stream == hipStreamLegacy)
+
+    // hipStreamLegacy is supported in HIP >= 6.1.0
+#if (HIP_VERSION_MAJOR >= 6 && HIP_VERSION_MINOR >= 1)
+    const bool is_legacy_stream = (stream == hipStreamLegacy);
+#else
+    const bool is_legacy_stream = false;
+#endif
+
+    if (stream == default_stream || stream == hipStreamPerThread || is_legacy_stream);
     {
         const hipError_t result = hipGetDevice(&device_id);
         if(result != hipSuccess)
