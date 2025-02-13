@@ -44,6 +44,7 @@ Full documentation for rocPRIM is available at [https://rocm.docs.amd.com/projec
 * Fixed incorrect 128-bit signed and unsigned integers type traits.
 * Fixed compilation issue when `rocprim::radix_key_codec<...>` is specialized with a 128-bit integer.
 * Fixed the warp-level reduction `rocprim::warp_reduce.reduce` DPP implementation to avoid undefined intermediate values during the reduction.
+* Fixed an issue that was causing a segmentation fault when hipStreamLegacy was passed to some API functions.
 
 ### Upcoming changes
 * Using the initialisation constructor of `rocprim::reverse_iterator` will throw a deprecation warning. It will be marked as explicit in the next major release.
